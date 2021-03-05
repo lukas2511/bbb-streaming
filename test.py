@@ -19,6 +19,12 @@ cameramanager = camera.CameraManager(sessionmanager)
 audiostream = audio.Audio(sessionmanager)
 audiostream.start()
 
+def chatmsg(msg):
+    if 'collection' not in msg or msg['collection'] != 'group-chat-msg':
+        return
+    print(msg['fields']['sender'] + ": " + msg['fields']['message'])
+sessionmanager.attach(chatmsg)
+
 # just a test script to get control over the websocket
 # doesn't do anything fancy yet
 
