@@ -134,8 +134,8 @@ class Audio(threading.Thread):
     def handle_sdp(self, msg):
         if 'sdpAnswer' in msg:
             sdp = msg['sdpAnswer']
-            print('received sdp answer')
-            print(sdp)
+            print('Received sdp answer for audio')
+            #print(sdp)
             res, sdpmsg = GstSdp.SDPMessage.new()
             GstSdp.sdp_message_parse_buffer(bytes(sdp.encode()), sdpmsg)
             answer = GstWebRTC.WebRTCSessionDescription.new(GstWebRTC.WebRTCSDPType.ANSWER, sdpmsg)
@@ -148,9 +148,9 @@ class Audio(threading.Thread):
             #print("got ice candidate: %s" % candidate)
             sdpmlineindex = ice['sdpMLineIndex']
             self.webrtc.emit('add-ice-candidate', sdpmlineindex, candidate)
-        else:
-            print(msg)
+        #else:
+        #    print(msg)
 
     def on_incoming_stream(self, _, pad):
         self.ready = True
-        print("!!!DANG DANG DANG DANG!!!")
+        print("Audio ready")

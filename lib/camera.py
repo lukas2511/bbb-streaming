@@ -163,8 +163,7 @@ class Camera(threading.Thread):
     def handle_sdp(self, msg):
         if 'sdpAnswer' in msg:
             sdp = msg['sdpAnswer']
-            print('received sdp answer')
-            print(sdp)
+            print('Received sdp answer for camera %s' % self.fields['stream'])
             res, sdpmsg = GstSdp.SDPMessage.new()
             GstSdp.sdp_message_parse_buffer(bytes(sdp.encode()), sdpmsg)
             answer = GstWebRTC.WebRTCSessionDescription.new(GstWebRTC.WebRTCSDPType.ANSWER, sdpmsg)
@@ -182,4 +181,4 @@ class Camera(threading.Thread):
 
     def on_incoming_stream(self, _, pad):
         self.ready = True
-        print("!!!DANG DANG DANG DANG!!!")
+        print("Camera %s ready" % self.fields['stream'])
