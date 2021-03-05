@@ -87,10 +87,8 @@ class Audio(threading.Thread):
         msg['type'] = 'audio'
         msg['role'] = 'recv'
         msg['internalMeetingId'] = self.sessionmanager.bbb_info['meetingID']
-        msg['meetingId'] = msg['internalMeetingId']
         msg['voiceBridge'] = self.sessionmanager.bbb_info['voicebridge']
-
-        # no idea why this has to be here
+        msg['caleeName'] = 'GLOBAL_AUDIO_' + self.sessionmanager.bbb_info['voicebridge']
         msg['userId'] = self.sessionmanager.bbb_info['internalUserID']
         msg['userName'] = self.sessionmanager.bbb_info['fullname']
 

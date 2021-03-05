@@ -77,8 +77,8 @@ class SessionManager(threading.Thread):
             for listener in self.listeners:
                 listener(msg)
 
-            #if 'collection' not in msg or msg['collection'] not in ['ping-pong']:
-            #    print(msg)
+            if 'collection' not in msg or msg['collection'] not in ['ping-pong']:
+                print(msg)
 
             if msg['msg'] == 'ping':
                 self.send({'msg': 'pong'})

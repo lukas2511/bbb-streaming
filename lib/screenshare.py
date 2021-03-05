@@ -20,25 +20,28 @@ Gst.init(None)
 PIPELINE_DESC = '''
 '''
 
-class CameraManager(object):
+class ScreenshareManager(object):
     def __init__(self, sessionmanager):
-        self.cameras = {}
+        self.screenshares = {}
 
         self.sessionmanager = sessionmanager
         self.sessionmanager.attach(self.listener)
 
     def remove(self, msgid):
-        if msgid in self.cameras:
-            self.cameras[msgid].stop()
-            self.cameras[msgid].join()
-            del self.cameras[msgid]
+        if msgid in self.screenshares:
+            self.screenshares[msgid].stop()
+            self.screenshares[msgid].join()
+            del self.screenshares[msgid]
 
     def add(self, msgid, fields):
-        self.cameras[msgid] = Camera(self.sessionmanager, fields)
-        self.cameras[msgid].start()
+        for msgid in self.screenshares:
+            self.remove(msgid)
+
+        self.screenshares[msgid] = Screenshare(self.sessionmanager, fields)
+        self.screenshares[msgid].start()
 
     def listener(self, msg):
-        if 'collection' not in msg or msg['collection'] != 'video-streams':
+        if 'collection' not in msg or msg['collection'] != 'screenshare':
             return
 
         if msg['msg'] == 'removed':
@@ -46,7 +49,7 @@ class CameraManager(object):
         elif msg['msg'] == 'added':
             self.add(msg['id'], msg['fields'])
 
-class Camera(threading.Thread):
+class Screenshare(threading.Thread):
     def __init__(self, sessionmanager, fields):
         self.sessionmanager = sessionmanager
         self.fields = fields
@@ -107,18 +110,16 @@ class Camera(threading.Thread):
         loop.close()
 
     def send_sdp_offer(self, offer):
-        print('Sending offer for camera %s' % self.fields['stream'])
+        print('Sending offer for screenshare')
         msg = {}
         msg['id'] = 'start'
-        msg['type'] = 'video'
-        msg['role'] = 'viewer'
+        msg['type'] = 'screenshare'
+        msg['role'] = 'recv'
         msg['internalMeetingId'] = self.sessionmanager.bbb_info['meetingID']
         msg['meetingId'] = msg['internalMeetingId']
         msg['voiceBridge'] = self.sessionmanager.bbb_info['voicebridge']
-        msg['cameraId'] = self.fields['stream']
 
-        # no idea why this has to be here
-        msg['bitrate'] = 10000 # should be unlimited on server-side as viewer anyway
+        # no idea why/if this has to be here
         msg['record'] = True
         msg['userId'] = self.sessionmanager.bbb_info['internalUserID']
         msg['userName'] = self.sessionmanager.bbb_info['fullname']
@@ -146,7 +147,7 @@ class Camera(threading.Thread):
         msg = {}
         msg['id'] = 'iceCandidate'
         msg['role'] = 'recv'
-        msg['type'] = 'video'
+        msg['type'] = 'screenshare'
         msg['voiceBridge'] = self.sessionmanager.bbb_info['voicebridge']
         msg['candidate'] = {'candidate': candidate, 'sdpMLineIndex': mlineindex}
         self.send(msg)
@@ -163,7 +164,7 @@ class Camera(threading.Thread):
     def handle_sdp(self, msg):
         if 'sdpAnswer' in msg:
             sdp = msg['sdpAnswer']
-            print('Received sdp answer for camera %s' % self.fields['stream'])
+            print('Received sdp answer for screenshare')
             res, sdpmsg = GstSdp.SDPMessage.new()
             GstSdp.sdp_message_parse_buffer(bytes(sdp.encode()), sdpmsg)
             answer = GstWebRTC.WebRTCSessionDescription.new(GstWebRTC.WebRTCSDPType.ANSWER, sdpmsg)
@@ -181,4 +182,4 @@ class Camera(threading.Thread):
 
     def on_incoming_stream(self, _, pad):
         self.ready = True
-        print("Camera %s ready" % self.fields['stream'])
+        print("Screenshare ready")
