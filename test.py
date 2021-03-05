@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from lib import session
+from lib import camera
 
 import cmd
 import json
@@ -12,8 +13,12 @@ sessionmanager = session.SessionManager(join_url)
 sessionmanager.daemon = True
 sessionmanager.start()
 
+cameramanager = camera.CameraManager(sessionmanager)
+
 # just a test script to get control over the websocket
 # doesn't do anything fancy yet
+
+cameras = {}
 
 class MyShell(cmd.Cmd):
     prompt = '(websocket) '
@@ -28,6 +33,22 @@ class MyShell(cmd.Cmd):
         msg['params'].append({'color': '0', 'correlationId': '%s-%d' % (sessionmanager.bbb_info['internalUserID'], timestamp), 'sender': {'id': sessionmanager.bbb_info['internalUserID'], 'name': sessionmanager.bbb_info['fullname']}, 'message': arg})
         msg['id'] = 'fnord-chat-%d' % timestamp
         sessionmanager.send(msg)
+
+    def do_camera(self, arg):
+        if arg in cameras:
+            return
+
+        cam = camera.Camera(sessionmanager, arg)
+        cam.daemon = True
+        cam.start()
+        cameras[arg] = cam
+
+    def do_uncamera(self, arg):
+        if arg not in cameras:
+            return
+
+        cameras[arg].stop()
+        del cameras[arg]
 
     def do_raw(self, arg):
         sessionmanager.send(json.loads(arg))

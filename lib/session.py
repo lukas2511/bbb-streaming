@@ -9,6 +9,7 @@ import threading
 import time
 import cmd
 import sys
+from .helpers import unasyncio
 
 def greenlight_join(server, room, nick='stream'):
     session = requests.session()
@@ -22,11 +23,9 @@ def greenlight_join(server, room, nick='stream'):
 
     return join_url
 
-def unasyncio(method):
-    return asyncio.get_event_loop().run_until_complete(method)
-
 class SessionManager(threading.Thread):
     def __init__(self, join_url):
+        self.listeners = []
         self.join_url = join_url
         self.running = True
         threading.Thread.__init__(self)
@@ -38,7 +37,7 @@ class SessionManager(threading.Thread):
         self.bbb_server = '/'.join(req.headers['Location'].split('/')[:3])
         self.bbb_token = req.headers['Location'].split('?sessionToken=')[1]
         self.bbb_info = json.loads(tmpsession.get(self.bbb_server + "/bigbluebutton/api/enter?sessionToken=" + self.bbb_token).text)["response"]
-        self.bbb_stun = json.loads(tmpsession.get(self.bbb_server + "/bigbluebutton/api/stuns?sessionToken=" + self.bbb_token).text)
+        self.bbb_stuns = json.loads(tmpsession.get(self.bbb_server + "/bigbluebutton/api/stuns?sessionToken=" + self.bbb_token).text)
         # no idea: print(json.dumps(tmpsession.get(self.bbb_server + "/html5client/sockjs/info?cb=" + secrets.token_urlsafe(8)).text))
 
     def connect(self):
@@ -57,11 +56,22 @@ class SessionManager(threading.Thread):
         for sub in ['annotations', 'current-user', 'group-chat', 'group-chat-msg', 'guestUser', 'local-settings', 'meetings', 'network-information', 'note', 'ping-pong', 'presentations', 'screenshare', 'slide-positions', 'slides', 'users', 'users-infos', 'video-streams', 'voice-call-states', 'voiceUsers']:
             self.send({'msg': 'sub', 'id': 'fnord-' + sub, 'name': sub, 'params': []})
 
+    def attach(self, listener):
+        if listener not in self.listeners:
+            self.listeners.append(listener)
+
+    def detach(self, listener):
+        if listener in self.listeners:
+            self.listeners.remove(listener)
+
     def run(self):
         self.join(self.join_url)
         self.connect()
         while self.running:
             msg = self.recv()
+
+            for listener in self.listeners:
+                listener(msg)
 
             if 'collection' not in msg or msg['collection'] not in ['ping-pong']:
                 print(msg)
