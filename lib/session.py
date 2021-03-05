@@ -28,6 +28,7 @@ class SessionManager(threading.Thread):
         self.listeners = []
         self.join_url = join_url
         self.running = True
+        self.ready = False
         threading.Thread.__init__(self)
 
     def join(self, join_url):
@@ -69,6 +70,9 @@ class SessionManager(threading.Thread):
         self.connect()
         while self.running:
             msg = self.recv()
+
+            if not self.ready and msg['msg'] == 'ready':
+                self.ready = True
 
             for listener in self.listeners:
                 listener(msg)

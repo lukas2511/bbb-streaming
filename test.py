@@ -2,6 +2,7 @@
 
 from lib import session
 from lib import camera
+from lib import audio
 
 import cmd
 import json
@@ -14,6 +15,9 @@ sessionmanager.daemon = True
 sessionmanager.start()
 
 cameramanager = camera.CameraManager(sessionmanager)
+
+audiostream = audio.Audio(sessionmanager)
+audiostream.start()
 
 # just a test script to get control over the websocket
 # doesn't do anything fancy yet
