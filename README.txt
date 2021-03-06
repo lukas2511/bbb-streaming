@@ -20,6 +20,7 @@ Output is muxed as matroska and sent to tcp localhost port 10000.
 
 Todo:
 
+- Fixing the gstreamer webrtc video glitches (recovery on packetloss is b0rked, worst case should be able to just drop UDP ice candidates...)
 - Support multiple (or no) cameras / Camera selection
 - Selection of multiple scenes (side-by-side, fullscreen cam/presentation)
 - Background for streams with whitespace
