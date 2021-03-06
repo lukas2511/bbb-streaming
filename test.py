@@ -4,6 +4,7 @@ from lib import session
 from lib import camera
 from lib import audio
 from lib import screenshare
+from lib import presentation
 
 import cmd
 import json
@@ -15,11 +16,13 @@ sessionmanager = session.SessionManager(join_url)
 sessionmanager.daemon = True
 sessionmanager.start()
 
-cameramanager = camera.CameraManager(sessionmanager)
-screensharemanager = screenshare.ScreenshareManager(sessionmanager)
+#cameramanager = camera.CameraManager(sessionmanager)
+#screensharemanager = screenshare.ScreenshareManager(sessionmanager)
+#audiostream = audio.Audio(sessionmanager)
+#audiostream.start()
 
-audiostream = audio.Audio(sessionmanager)
-audiostream.start()
+presentationstream = presentation.Presentation(sessionmanager)
+#presentationstream.start()
 
 def chatmsg(msg):
     if 'collection' not in msg or msg['collection'] != 'group-chat-msg':
