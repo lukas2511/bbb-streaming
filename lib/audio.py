@@ -18,8 +18,9 @@ from gi.repository import GstSdp
 Gst.init(None)
 
 class Audio(threading.Thread):
-    def __init__(self, sessionmanager):
+    def __init__(self, sessionmanager, streammixer):
         self.sessionmanager = sessionmanager
+        self.streammixer = streammixer
         self.running = True
         self.ready = False
         threading.Thread.__init__(self)
@@ -38,8 +39,7 @@ class Audio(threading.Thread):
         server = self.sessionmanager.bbb_server.replace('https', 'wss') + '/bbb-webrtc-sfu?sessionToken=' + self.sessionmanager.bbb_token
         self.conn = unasyncio(websockets.connect(server))
 
-        stun_server = self.sessionmanager.bbb_stuns['stunServers'][0]['url'].split(':')[0]
-        pipeline = "webrtcbin name=recvonly bundle-policy=max-bundle stun-server=stun://%s" % stun_server
+        pipeline = "webrtcbin name=recvonly bundle-policy=max-bundle stun-server=stun://%s" % self.sessionmanager.stun_server
         pipeline += " ! rtpopusdepay"
         pipeline += " ! opusdec"
         pipeline += " ! audioconvert"

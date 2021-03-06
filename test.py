@@ -5,6 +5,7 @@ from lib import camera
 from lib import audio
 from lib import screenshare
 from lib import presentation
+from lib import mixer
 
 import cmd
 import json
@@ -16,13 +17,14 @@ sessionmanager = session.SessionManager(join_url)
 sessionmanager.daemon = True
 sessionmanager.start()
 
-#cameramanager = camera.CameraManager(sessionmanager)
-#screensharemanager = screenshare.ScreenshareManager(sessionmanager)
+streammixer = mixer.Mixer()
+
+cameramanager = camera.CameraManager(sessionmanager, streammixer)
+#screensharemanager = screenshare.ScreenshareManager(sessionmanager, streammixer)
 #audiostream = audio.Audio(sessionmanager)
 #audiostream.start()
 
-presentationstream = presentation.Presentation(sessionmanager)
-#presentationstream.start()
+presentationstream = presentation.Presentation(sessionmanager, streammixer)
 
 def chatmsg(msg):
     if 'collection' not in msg or msg['collection'] != 'group-chat-msg':
@@ -34,7 +36,7 @@ sessionmanager.attach(chatmsg)
 # doesn't do anything fancy yet
 
 class MyShell(cmd.Cmd):
-    prompt = '(websocket) '
+    prompt = '(bbb) '
 
     def do_say(self, arg):
         timestamp = int(time.time())
@@ -46,6 +48,9 @@ class MyShell(cmd.Cmd):
         msg['params'].append({'color': '0', 'correlationId': '%s-%d' % (sessionmanager.bbb_info['internalUserID'], timestamp), 'sender': {'id': sessionmanager.bbb_info['internalUserID'], 'name': sessionmanager.bbb_info['fullname']}, 'message': arg})
         msg['id'] = 'fnord-chat-%d' % timestamp
         sessionmanager.send(msg)
+
+    def do_source(self, arg):
+        streammixer.source = arg
 
     def do_raw(self, arg):
         sessionmanager.send(json.loads(arg))

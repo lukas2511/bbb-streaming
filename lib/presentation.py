@@ -23,9 +23,11 @@ Gst.init(None)
 from .gsthacks import map_gst_buffer
 
 class Presentation(object):
-    def __init__(self, sessionmanager):
+    def __init__(self, sessionmanager, streammixer):
         self.sessionmanager = sessionmanager
         self.sessionmanager.attach(self.listener)
+
+        self.streammixer = streammixer
 
         self.presentations = {}
         self.active_presentation = None
@@ -39,7 +41,16 @@ class Presentation(object):
         self.frame_updated = False
         self.mapped_framebuf = map_gst_buffer(self.framebuf, Gst.MapFlags.READ | Gst.MapFlags.WRITE)
 
-        self.pipe = Gst.parse_launch("appsrc name=input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=BGRA ! video/x-raw,width=1920,height=1080,format=BGRA,framerate=25/1 ! queue ! videoconvert ! xvimagesink")
+        pipeline = "appsrc name=input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=BGRA"
+        pipeline += " ! video/x-raw,width=1920,height=1080,format=BGRA,framerate=25/1"
+        pipeline += " ! queue"
+        pipeline += " ! videoconvert"
+        pipeline += " ! queue"
+        pipeline += " ! video/x-raw,width=1920,height=1080,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1"
+        pipeline += " ! appsink name=output emit-signals=true drop=true"
+        self.pipe = Gst.parse_launch(pipeline)
+        self.appsink = self.pipe.get_by_name('output')
+        self.appsink.connect("new-sample", self.new_sample, self.appsink)
         self.appsrc = self.pipe.get_by_name("input")
         self.pipe.set_state(Gst.State.PLAYING)
 
@@ -50,6 +61,11 @@ class Presentation(object):
 
         self.frameupdaterthread = threading.Thread(target=self.update_frame_loop, daemon=True)
         self.frameupdaterthread.start()
+
+    def new_sample(self, sink, data):
+        sample = self.appsink.emit("pull-sample")
+        self.streammixer.new_sample("presentation", self, sample)
+        return Gst.FlowReturn.OK
 
     def push_frame(self):
         while self.running:

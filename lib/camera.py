@@ -17,15 +17,14 @@ from gi.repository import GstSdp
 
 Gst.init(None)
 
-PIPELINE_DESC = '''
-'''
-
 class CameraManager(object):
-    def __init__(self, sessionmanager):
+    def __init__(self, sessionmanager, streammixer):
         self.cameras = {}
 
         self.sessionmanager = sessionmanager
         self.sessionmanager.attach(self.listener)
+
+        self.streammixer = streammixer
 
     def remove(self, msgid):
         if msgid in self.cameras:
@@ -34,7 +33,7 @@ class CameraManager(object):
             del self.cameras[msgid]
 
     def add(self, msgid, fields):
-        self.cameras[msgid] = Camera(self.sessionmanager, fields)
+        self.cameras[msgid] = Camera(self.sessionmanager, fields, self.streammixer)
         self.cameras[msgid].start()
 
     def listener(self, msg):
@@ -47,16 +46,23 @@ class CameraManager(object):
             self.add(msg['id'], msg['fields'])
 
 class Camera(threading.Thread):
-    def __init__(self, sessionmanager, fields):
+    def __init__(self, sessionmanager, fields, streammixer):
+        self.streammixer = streammixer
+        self.appsink = None
+        self.ready = False
         self.sessionmanager = sessionmanager
         self.fields = fields
         self.running = True
-        self.ready = False
         threading.Thread.__init__(self)
         self.daemon = True
 
     def stop(self):
         self.running = False
+
+    def new_sample(self, sink, data):
+        sample = self.appsink.emit("pull-sample")
+        self.streammixer.new_sample("camera", self, sample)
+        return Gst.FlowReturn.OK
 
     def run(self):
         self.loop = asyncio.new_event_loop()
@@ -65,18 +71,24 @@ class Camera(threading.Thread):
         server = self.sessionmanager.bbb_server.replace('https', 'wss') + '/bbb-webrtc-sfu?sessionToken=' + self.sessionmanager.bbb_token
         self.conn = unasyncio(websockets.connect(server))
 
-        stun_server = self.sessionmanager.bbb_stuns['stunServers'][0]['url'].split(':')[0]
-        pipeline = "webrtcbin name=recvonly bundle-policy=max-bundle stun-server=stun://%s" % stun_server
+        pipeline = "webrtcbin name=recvonly bundle-policy=max-bundle stun-server=stun://%s" % self.sessionmanager.stun_server
         pipeline += " ! rtpvp8depay"
         pipeline += " ! vp8dec"
+        pipeline += " ! queue"
+        pipeline += " ! videoscale"
         pipeline += " ! videoconvert"
-        pipeline += " ! autovideosink"
+        pipeline += " ! videorate"
+        pipeline += " ! queue"
+        pipeline += " ! video/x-raw,width=1920,height=1080,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1"
+        pipeline += " ! appsink name=output emit-signals=true drop=true"
 
         self.pipe = Gst.parse_launch(pipeline)
         self.webrtc = self.pipe.get_by_name('recvonly')
+        self.appsink = self.pipe.get_by_name('output')
+        self.appsink.connect("new-sample", self.new_sample, self.appsink)
 
         direction = GstWebRTC.WebRTCRTPTransceiverDirection.RECVONLY
-        caps = Gst.caps_from_string("application/x-rtp,media=video,encoding-name=vp8,payload=98")
+        caps = Gst.caps_from_string("application/x-rtp,media=video,encoding-name=vp8,clock-rate=90000,ssrc=1,payload=98")
         self.webrtc.emit('add-transceiver', direction, caps)
 
         self.webrtc.connect('on-negotiation-needed', self.on_negotiation_needed)
