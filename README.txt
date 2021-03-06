@@ -7,6 +7,8 @@ Heavily work-in-progress, only partially functional.
 The whiteboard is definitively the hardest part to get right. Everything else just kinda depends on
 gstreamer not breaking every 5 minutes :D
 
+Example usage: python test.py your.bbb.server room-id-from-greenlight
+
 Working:
 
 - Capturing audio
