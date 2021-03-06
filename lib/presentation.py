@@ -35,19 +35,21 @@ class Presentation(object):
         self.active_slide = None
         self.annotations = {}
 
+        self.lasttime = time.time()
+        self.frames = 0
+
         self.framesvg = None
         self.frame = None
         self.framebuf = Gst.Buffer.new_wrapped(b'\x00' * (4*1920*1080))
+
         self.frame_updated = False
         self.mapped_framebuf = map_gst_buffer(self.framebuf, Gst.MapFlags.READ | Gst.MapFlags.WRITE)
 
-        pipeline = "appsrc name=input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=BGRA"
-        pipeline += " ! video/x-raw,width=1920,height=1080,format=BGRA,framerate=25/1"
-        pipeline += " ! queue"
+        pipeline = "appsrc name=input emit-signals=false format=time do-timestamp=true is-live=true block=true caps=video/x-raw,width=1920,height=1080,format=BGRA,framerate=25/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
         pipeline += " ! videoconvert"
-        pipeline += " ! queue"
-        pipeline += " ! video/x-raw,width=1920,height=1080,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1"
-        pipeline += " ! appsink name=output emit-signals=true drop=true"
+        pipeline += " ! videorate"
+        pipeline += " ! appsink name=output emit-signals=true drop=true sync=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1"
+
         self.pipe = Gst.parse_launch(pipeline)
         self.appsink = self.pipe.get_by_name('output')
         self.appsink.connect("new-sample", self.new_sample, self.appsink)
@@ -56,11 +58,10 @@ class Presentation(object):
 
         self.running = True
 
-        self.framepusherthread = threading.Thread(target=self.push_frame, daemon=True)
-        self.framepusherthread.start()
-
         self.frameupdaterthread = threading.Thread(target=self.update_frame_loop, daemon=True)
         self.frameupdaterthread.start()
+
+        self.push_frame()
 
     def new_sample(self, sink, data):
         sample = self.appsink.emit("pull-sample")
@@ -68,9 +69,16 @@ class Presentation(object):
         return Gst.FlowReturn.OK
 
     def push_frame(self):
-        while self.running:
-            self.appsrc.emit("push-buffer", self.framebuf)
-            time.sleep(1/25)
+        if self.running:
+            threading.Timer(1/25, self.push_frame).start()
+        self.appsrc.emit("push-buffer", self.framebuf)
+
+    def fpscount(self):
+        self.frames += 1
+        if self.lasttime < (time.time()-1):
+            print(self.frames)
+            self.frames = 0
+            self.lasttime = time.time()
 
     def update_frame_loop(self):
         while self.running:

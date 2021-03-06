@@ -75,12 +75,12 @@ class Camera(threading.Thread):
         pipeline += " ! rtpvp8depay"
         pipeline += " ! vp8dec"
         pipeline += " ! queue"
+        pipeline += " ! videorate"
         pipeline += " ! videoscale"
         pipeline += " ! videoconvert"
-        pipeline += " ! videorate"
         pipeline += " ! queue"
         pipeline += " ! video/x-raw,width=1920,height=1080,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1"
-        pipeline += " ! appsink name=output emit-signals=true drop=true"
+        pipeline += " ! appsink name=output emit-signals=true drop=true sync=false"
 
         self.pipe = Gst.parse_launch(pipeline)
         self.webrtc = self.pipe.get_by_name('recvonly')

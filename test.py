@@ -19,12 +19,13 @@ sessionmanager.start()
 
 streammixer = mixer.Mixer()
 
-cameramanager = camera.CameraManager(sessionmanager, streammixer)
-#screensharemanager = screenshare.ScreenshareManager(sessionmanager, streammixer)
 #audiostream = audio.Audio(sessionmanager)
 #audiostream.start()
 
-presentationstream = presentation.Presentation(sessionmanager, streammixer)
+cameramanager = camera.CameraManager(sessionmanager, streammixer)
+screenshareswitch = screenshare.Switcher(streammixer)
+presentationstream = presentation.Presentation(sessionmanager, screenshareswitch)
+screensharemanager = screenshare.ScreenshareManager(sessionmanager, screenshareswitch)
 
 def chatmsg(msg):
     if 'collection' not in msg or msg['collection'] != 'group-chat-msg':

@@ -21,26 +21,27 @@ PIPELINE_DESC = '''
 '''
 
 class ScreenshareManager(object):
-    def __init__(self, sessionmanager, streammixer):
+    def __init__(self, sessionmanager, switcher):
         self.screenshares = {}
 
         self.sessionmanager = sessionmanager
         self.sessionmanager.attach(self.listener)
-
-        self.streammixer = streammixer
+        self.switcher = switcher
 
     def remove(self, msgid):
         if msgid in self.screenshares:
             self.screenshares[msgid].stop()
             self.screenshares[msgid].join()
             del self.screenshares[msgid]
+        self.switcher.screenshare_active = False
 
     def add(self, msgid, fields):
         for msgid in self.screenshares:
             self.remove(msgid)
 
-        self.screenshares[msgid] = Screenshare(self.sessionmanager, fields, self.streammixer)
+        self.screenshares[msgid] = Screenshare(self.sessionmanager, fields, self.switcher)
         self.screenshares[msgid].start()
+        self.switcher.screenshare_active = True
 
     def listener(self, msg):
         if 'collection' not in msg or msg['collection'] != 'screenshare':
@@ -197,3 +198,14 @@ class Screenshare(threading.Thread):
     def on_incoming_stream(self, _, pad):
         self.ready = True
         print("Screenshare ready")
+
+class Switcher(object):
+    def __init__(self, streammixer):
+        self.screenshare_active = False
+        self.streammixer = streammixer
+
+    def new_sample(self, stype, source, sample):
+        if self.screenshare_active and stype == 'screenshare':
+            self.streammixer.new_sample('presentation', source, sample)
+        elif not self.screenshare_active and stype == 'presentation':
+            self.streammixer.new_sample('presentation', source, sample)

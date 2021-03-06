@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+import time
+import threading
+
 import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst
@@ -12,19 +15,80 @@ Gst.init(None)
 
 class Mixer(object):
     def __init__(self):
-        pipeline = "appsrc name=camera-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1"
+        self.running = True
+
+        pipeline = "compositor background=black name=comp sink_1::alpha=1 sink_1::xpos=20 sink_1::ypos=700 sink_0::alpha=1 sink_0::xpos=220 sink_0::ypos=20 sync=true"
+        pipeline += " ! video/x-raw,width=1920,height=1080"
+        pipeline += " ! timeoverlay valignment=bottom halignment=right"
+        pipeline += " ! videoconvert ! xvimagesink"
+
+        pipeline += " appsrc name=presentation-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
+        pipeline += " ! videorate"
+        pipeline += " ! videoscale"
+        pipeline += " ! video/x-raw,width=1680,height=945"
+        pipeline += " ! queue"
+        pipeline += " ! comp.sink_0"
+
+        pipeline += " appsrc name=camera-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
+        pipeline += " ! videorate"
         pipeline += " ! queue"
         pipeline += " ! videoscale"
-        pipeline += " ! videoconvert"
-        pipeline += " ! queue"
-        pipeline += " ! xvimagesink sync=false"
+        pipeline += " ! video/x-raw,width=480,height=360"
+        pipeline += " ! comp.sink_1"
+
+        #pipeline = "appsrc name=camera-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1"
+        #pipeline += " ! queue"
+        #pipeline += " ! videoscale"
+        #pipeline += " ! videoconvert"
+        #pipeline += " ! queue"
+        #pipeline += " ! xvimagesink sync=false"
 
         self.pipe = Gst.parse_launch(pipeline)
         self.camera_input = self.pipe.get_by_name("camera-input")
+        self.camera_input.set_property("format", Gst.Format.TIME)
+
+        self.presentation_input = self.pipe.get_by_name("presentation-input")
+        self.presentation_input.set_property("format", Gst.Format.TIME)
+
         self.pipe.set_state(Gst.State.PLAYING)
 
         self.source = "camera"
 
+        self.lasttime = time.time()
+        self.frames = 0
+
+        self.cambuffer = Gst.Buffer.new_wrapped(b'\x00' * (4*1920*1080))
+        self.presbuffer = Gst.Buffer.new_wrapped(b'\x00' * (4*1920*1080))
+
+        self.push_frames()
+
+    def push_frames(self):
+        if self.running:
+            threading.Timer(1/25, self.push_frames).start()
+
+        self.presentation_input.emit("push-buffer", self.presbuffer)
+        self.camera_input.emit("push-buffer", self.cambuffer)
+
+    def fpscount(self):
+        self.frames += 1
+        if self.lasttime < (time.time()-1):
+            print(self.frames)
+            self.frames = 0
+            self.lasttime = time.time()
+
     def new_sample(self, stype, source, sample):
-        if stype == self.source:
-            self.camera_input.emit("push-sample", sample)
+        if stype == "camera":
+            buf = sample.get_buffer()
+            buf.pts = 18446744073709551615
+            buf.dts = 18446744073709551615
+            buf.duration = 40000000
+            self.cambuffer = buf
+        elif stype == "presentation":
+            buf = sample.get_buffer()
+            buf.pts = 18446744073709551615
+            buf.dts = 18446744073709551615
+            buf.duration = 40000000
+            self.presbuffer = buf
+            #self.presentation_input.emit("push-sample", sample)
+
+
