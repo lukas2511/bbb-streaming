@@ -64,6 +64,7 @@ class Presentation(object):
     def update_frame(self):
         if not self.frame_updated:
             return
+        self.frame_updated = False
 
         if not self.active_slide:
             return
@@ -97,7 +98,6 @@ class Presentation(object):
             ctypes.memmove(self.mapped_framebuf, self.frame, len(self.frame))
 
         print("Update frame")
-        self.frame_updated = False
 
     def add_slide(self, msg):
         slide_id = msg['id']
