@@ -20,7 +20,8 @@ class Mixer(object):
         pipeline = "compositor background=black name=comp sink_1::alpha=1 sink_1::xpos=20 sink_1::ypos=700 sink_0::alpha=1 sink_0::xpos=220 sink_0::ypos=20 sync=true"
         pipeline += " ! video/x-raw,width=1920,height=1080"
         pipeline += " ! timeoverlay valignment=bottom halignment=right"
-        pipeline += " ! videoconvert ! xvimagesink"
+        pipeline += " ! videoconvert"
+        pipeline += " ! mux."
 
         pipeline += " appsrc name=presentation-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
         pipeline += " ! videorate"
@@ -36,14 +37,20 @@ class Mixer(object):
         pipeline += " ! video/x-raw,width=480,height=360"
         pipeline += " ! comp.sink_1"
 
-        #pipeline = "appsrc name=camera-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1"
-        #pipeline += " ! queue"
-        #pipeline += " ! videoscale"
-        #pipeline += " ! videoconvert"
-        #pipeline += " ! queue"
-        #pipeline += " ! xvimagesink sync=false"
+        pipeline += " appsrc name=audio-input emit-signals=false do-timestamp=true is-live=true block=true caps=audio/x-raw,rate=48000,channels=2,format=U16LE,layout=interleaved"
+        pipeline += " ! queue"
+        pipeline += " ! audioconvert"
+        pipeline += " ! audioresample"
+        pipeline += " ! mux."
+
+        pipeline += " matroskamux name=mux"
+        pipeline += " ! tcpclientsink host=127.0.0.1 port=10000"
 
         self.pipe = Gst.parse_launch(pipeline)
+
+        self.audio_input = self.pipe.get_by_name("audio-input")
+        self.audio_input.set_property("format", Gst.Format.TIME)
+
         self.camera_input = self.pipe.get_by_name("camera-input")
         self.camera_input.set_property("format", Gst.Format.TIME)
 
@@ -62,6 +69,9 @@ class Mixer(object):
 
         self.push_frames()
 
+    def stop(self):
+        self.running = False
+
     def push_frames(self):
         if self.running:
             threading.Timer(1/25, self.push_frames).start()
@@ -75,6 +85,12 @@ class Mixer(object):
             print(self.frames)
             self.frames = 0
             self.lasttime = time.time()
+
+    def new_audio_sample(self, source, sample):
+        buf = sample.get_buffer()
+        buf.pts = 18446744073709551615
+        buf.dts = 18446744073709551615
+        self.audio_input.emit("push-buffer", buf)
 
     def new_sample(self, stype, source, sample):
         if stype == "camera":

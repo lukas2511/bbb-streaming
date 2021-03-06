@@ -44,10 +44,13 @@ class Audio(threading.Thread):
         pipeline += " ! opusdec"
         pipeline += " ! audioconvert"
         pipeline += " ! audioresample"
-        pipeline += " ! autoaudiosink"
+        pipeline += " ! appsink name=output emit-signals=true drop=true sync=false caps=audio/x-raw,rate=48000,channels=2,format=U16LE,layout=interleaved"
 
         self.pipe = Gst.parse_launch(pipeline)
         self.webrtc = self.pipe.get_by_name('recvonly')
+
+        self.appsink = self.pipe.get_by_name("output")
+        self.appsink.connect("new-sample", self.new_sample, self.appsink)
 
         direction = GstWebRTC.WebRTCRTPTransceiverDirection.RECVONLY
         caps = Gst.caps_from_string("application/x-rtp,media=audio,encoding-name=opus,payload=111")
@@ -67,6 +70,11 @@ class Audio(threading.Thread):
         self.pipe.set_state(Gst.State.NULL)
         self.loop.stop()
         self.loop.close()
+
+    def new_sample(self, sink, data):
+        sample = self.appsink.emit("pull-sample")
+        self.streammixer.new_audio_sample(self, sample)
+        return Gst.FlowReturn.OK
 
     def recv(self):
         try:

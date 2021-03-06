@@ -19,8 +19,8 @@ sessionmanager.start()
 
 streammixer = mixer.Mixer()
 
-#audiostream = audio.Audio(sessionmanager)
-#audiostream.start()
+audiostream = audio.Audio(sessionmanager, streammixer)
+audiostream.start()
 
 cameramanager = camera.CameraManager(sessionmanager, streammixer)
 screenshareswitch = screenshare.Switcher(streammixer)
@@ -56,4 +56,9 @@ class MyShell(cmd.Cmd):
     def do_raw(self, arg):
         sessionmanager.send(json.loads(arg))
 
-MyShell().cmdloop()
+try:
+    MyShell().cmdloop()
+except:
+    pass
+
+streammixer.stop()
