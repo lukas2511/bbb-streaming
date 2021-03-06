@@ -41,7 +41,7 @@ def annot_pencil(annotation, res):
 def annot_line(annotation, res):
     width,height = res
     annotation["commands"] = [1, 2]
-    return annot_pencil(annotation)
+    return annot_pencil(annotation, res)
 
 def annot_ellipse(annotation, res):
     width,height = res
