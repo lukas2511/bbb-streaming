@@ -21,6 +21,8 @@ class Mixer(object):
         pipeline += " ! video/x-raw,width=1920,height=1080"
         pipeline += " ! timeoverlay valignment=bottom halignment=right"
         pipeline += " ! videoconvert"
+        pipeline += " ! x264enc pass=5 quantizer=22 speed-preset=4"
+        pipeline += " ! video/x-h264, profile=baseline"
         pipeline += " ! mux."
 
         pipeline += " appsrc name=presentation-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
@@ -41,6 +43,8 @@ class Mixer(object):
         pipeline += " ! queue"
         pipeline += " ! audioconvert"
         pipeline += " ! audioresample"
+        pipeline += " ! fdkaacenc bitrate=128000"
+        pipeline += " ! audio/mpeg,rate=48000,channels=2"
         pipeline += " ! mux."
 
         pipeline += " matroskamux name=mux"
