@@ -2,13 +2,27 @@
 
 Big Blue Button streaming without pressing a virtual camera against a remote controlled webbrowser..
 
-Heavily work-in-progress, not yet functional.
-
-Currently there is code to receive all webcams, screenshare, the conference audio,
-and even some initial support for generating a video stream of the whiteboard including annotations.
+Heavily work-in-progress, only partially functional.
 
 The whiteboard is definitively the hardest part to get right. Everything else just kinda depends on
 gstreamer not breaking every 5 minutes :D
 
-At the moment all sources are simply displayed in their own windows or played back through system audio,
-internal mixing and stream outputs are not yet implemented.
+Working:
+
+- Capturing audio
+- Capturing all cameras
+- Capturing screen captures
+- Generating presentation canvas (including annotations) and converting it into an internal video stream
+- Automatic switching between presentation and screenshare
+- Simple side-by-side scene with exactly 1 active webcam and the presentation/screenshare
+
+Output is muxed as matroska and sent to tcp localhost port 10000.
+
+Todo:
+
+- Support multiple (or no) cameras / Camera selection
+- Selection of multiple scenes (side-by-side, fullscreen cam/presentation)
+- Background for streams with whitespace
+- Control via chat commands for easy integration?
+- Lots of error handling + recovery foo
+- Finishing the todo list
