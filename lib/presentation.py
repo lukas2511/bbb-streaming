@@ -91,8 +91,19 @@ class Presentation(object):
 
             surface = cairo.ImageSurface(cairo.FORMAT_RGB24, 1920, 1080)
             context = cairo.Context(surface)
+
             handle = Rsvg.Handle()
-            handle.new_from_data(self.framesvg.encode()).render_cairo(context)
+            svghandle = handle.new_from_data(self.framesvg.encode())
+
+            scale_w = 1920 / svghandle.get_dimensions().width
+            scale_h = 1080 / svghandle.get_dimensions().height
+
+            if scale_w > scale_h:
+                context.scale(scale_h, scale_h)
+            else:
+                context.scale(scale_w, scale_w)
+
+            svghandle.render_cairo(context)
 
             self.frame = bytes(surface.get_data())
             ctypes.memmove(self.mapped_framebuf, self.frame, len(self.frame))
@@ -189,14 +200,15 @@ class Presentation(object):
                             return
                     elif msg['fields']['status'] == 'DRAW_END':
                         self.annotations[msg['id']] = msg['fields']['annotationInfo']
+                        print("Updating annotation %s" % msg['id'])
+                        self.annotations[msg['id']]['svg'] = None
+                        self.frame_updated = True
                     else:
                         print("wat")
                         print(msg['fields']['status'])
                         return
                 elif 'status' in msg['fields']['annotationInfo'] and msg['fields']['annotationInfo']['status'] == 'DRAW_END':
                     self.annotations[msg['id']] = msg['fields']['annotationInfo']
-
-                if msg['id'] in self.annotations:
                     print("Updating annotation %s" % msg['id'])
                     self.annotations[msg['id']]['svg'] = None
                     self.frame_updated = True
