@@ -31,6 +31,13 @@ def chatmsg(msg):
     if 'collection' not in msg or msg['collection'] != 'group-chat-msg':
         return
     print(msg['fields']['sender'] + ": " + msg['fields']['message'])
+
+    txt = msg['fields']['message']
+    if txt.startswith("!") and ' ' in txt:
+        cmd, args = txt[1:].split(' ', 1)
+        if cmd == 'view':
+            streammixer.set_view(args)
+
 sessionmanager.attach(chatmsg)
 
 class MyShell(cmd.Cmd):

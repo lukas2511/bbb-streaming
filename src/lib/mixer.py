@@ -17,27 +17,33 @@ class Mixer(object):
     def __init__(self, rtmpurl):
         self.running = True
 
-        pipeline = "compositor background=black name=comp sink_1::alpha=1 sink_1::xpos=20 sink_1::ypos=700 sink_0::alpha=1 sink_0::xpos=220 sink_0::ypos=20 sync=true"
+        pipeline = "compositor background=black sync=true name=comp"
         pipeline += " ! video/x-raw,width=1920,height=1080"
-        pipeline += " ! timeoverlay valignment=bottom halignment=right"
+        #pipeline += " ! timeoverlay valignment=bottom halignment=left"
         pipeline += " ! videoconvert"
         pipeline += " ! x264enc pass=4 quantizer=22 speed-preset=4"
         pipeline += " ! video/x-h264, profile=baseline"
         pipeline += " ! queue"
         pipeline += " ! mux."
 
+        pipeline += " filesrc location=images/bg.png"
+        pipeline += " ! decodebin"
+        pipeline += " ! videoconvert"
+        pipeline += " ! videoscale"
+        pipeline += " ! video/x-raw,width=1920,height=1080"
+        pipeline += " ! imagefreeze"
+        pipeline += " ! comp.sink_2"
+
         pipeline += " appsrc name=presentation-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=10/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
         pipeline += " ! videorate"
-        pipeline += " ! videoscale"
-        pipeline += " ! video/x-raw,width=1680,height=945"
         pipeline += " ! queue"
+        pipeline += " ! videoscale"
         pipeline += " ! comp.sink_0"
 
         pipeline += " appsrc name=camera-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1280,height=720,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
         pipeline += " ! videorate"
         pipeline += " ! queue"
         pipeline += " ! videoscale"
-        pipeline += " ! video/x-raw,width=480,height=360"
         pipeline += " ! comp.sink_1"
 
         pipeline += " appsrc name=audio-input emit-signals=false do-timestamp=true is-live=true block=true caps=audio/x-raw,rate=48000,channels=2,format=U16LE,layout=interleaved"
@@ -58,6 +64,8 @@ class Mixer(object):
         self.audio_input = self.pipe.get_by_name("audio-input")
         self.audio_input.set_property("format", Gst.Format.TIME)
 
+        self.compositor = self.pipe.get_by_name("comp")
+
         self.camera_input = self.pipe.get_by_name("camera-input")
         self.camera_input.set_property("format", Gst.Format.TIME)
 
@@ -65,6 +73,7 @@ class Mixer(object):
         self.presentation_input.set_property("format", Gst.Format.TIME)
 
         self.pipe.set_state(Gst.State.PLAYING)
+        self.set_view("sbs")
 
         self.lasttime = time.time()
         self.frames = 0
@@ -74,6 +83,29 @@ class Mixer(object):
 
         self.push_camera_frames()
         self.push_presentation_frames()
+
+    def set_view(self, view):
+        if view == "sbs":
+            camera = {'xpos': 1420, 'ypos': 790, 'width': 480, 'height': 270, 'alpha': 1.0}
+            presentation = {'xpos': 20, 'ypos': 160, 'width': 1440, 'height': 810, 'alpha': 1.0}
+        elif view == "pip":
+            camera = {'xpos': 1420, 'ypos': 790, 'width': 480, 'height': 270, 'alpha': 1.0}
+            presentation = {'xpos': 0, 'ypos': 0, 'width': 1920, 'height': 1080, 'alpha': 1.0}
+        elif view == "cam":
+            camera = {'xpos': 0, 'ypos': 0, 'width': 1920, 'height': 1080, 'alpha': 1.0}
+            presentation = {'xpos': 0, 'ypos': 0, 'width': 1920, 'height': 1080, 'alpha': 0.0}
+        elif view == "pres":
+            camera = {'xpos': 0, 'ypos': 0, 'width': 1920, 'height': 1080, 'alpha': 0.0}
+            presentation = {'xpos': 0, 'ypos': 0, 'width': 1920, 'height': 1080, 'alpha': 1.0}
+        else:
+            print("unknown view: %s" % view)
+
+        for key, value in camera.items():
+            sink = self.compositor.get_static_pad('sink_1')
+            sink.set_property(key, value)
+        for key, value in presentation.items():
+            sink = self.compositor.get_static_pad('sink_0')
+            sink.set_property(key, value)
 
     def stop(self):
         self.running = False
