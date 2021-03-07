@@ -26,14 +26,14 @@ class Mixer(object):
         pipeline += " ! queue"
         pipeline += " ! mux."
 
-        pipeline += " appsrc name=presentation-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
+        pipeline += " appsrc name=presentation-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=10/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
         pipeline += " ! videorate"
         pipeline += " ! videoscale"
         pipeline += " ! video/x-raw,width=1680,height=945"
         pipeline += " ! queue"
         pipeline += " ! comp.sink_0"
 
-        pipeline += " appsrc name=camera-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
+        pipeline += " appsrc name=camera-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1280,height=720,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
         pipeline += " ! videorate"
         pipeline += " ! queue"
         pipeline += " ! videoscale"
@@ -69,20 +69,24 @@ class Mixer(object):
         self.lasttime = time.time()
         self.frames = 0
 
-        self.cambuffer = Gst.Buffer.new_wrapped(b'\x00' * (4*1920*1080))
+        self.cambuffer = Gst.Buffer.new_wrapped(b'\x00' * (4*1280*720))
         self.presbuffer = Gst.Buffer.new_wrapped(b'\x00' * (4*1920*1080))
 
-        self.push_frames()
+        self.push_camera_frames()
+        self.push_presentation_frames()
 
     def stop(self):
         self.running = False
 
-    def push_frames(self):
+    def push_camera_frames(self):
         if self.running:
-            threading.Timer(1/25, self.push_frames).start()
-
-        self.presentation_input.emit("push-buffer", self.presbuffer)
+            threading.Timer(1/25, self.push_camera_frames).start()
         self.camera_input.emit("push-buffer", self.cambuffer)
+
+    def push_presentation_frames(self):
+        if self.running:
+            threading.Timer(1/10, self.push_presentation_frames).start()
+        self.presentation_input.emit("push-buffer", self.presbuffer)
 
     def fpscount(self):
         self.frames += 1

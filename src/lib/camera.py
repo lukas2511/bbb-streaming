@@ -109,7 +109,7 @@ class Camera(WebRTC):
         pipeline += " ! videoscale"
         pipeline += " ! videoconvert"
         pipeline += " ! queue"
-        pipeline += " ! video/x-raw,width=1920,height=1080,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1"
+        pipeline += " ! video/x-raw,width=1280,height=720,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1"
         pipeline += " ! appsink name=output emit-signals=true drop=true sync=false"
 
         self.pipe = Gst.parse_launch(pipeline)
