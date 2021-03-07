@@ -20,15 +20,14 @@ Working:
 - Automatic switching between presentation and screenshare
 - Simple side-by-side scene with exactly 1 active webcam and the presentation/screenshare
 - Tracking camera of active speaker
+- Background image for streams
+- Selection of multiple scenes (side-by-side, fullscreen cam/presentation) using chat commands (`!view <sbs|pip|cam|pres>`)
 
 Output is streamed using rtmp for now. How this is implemented will probably change.
 
 Todo:
 
-- Fixing the gstreamer webrtc video glitches (recovery on packetloss is b0rked, worst case should be able to just drop UDP ice candidates...)
-- Support multiple (or no) cameras / Manual camera selection
-- Selection of multiple scenes (side-by-side, fullscreen cam/presentation)
-- Background for streams with whitespace
-- Control via chat commands for easy integration?
+- Fixing the gstreamer webrtc video glitches (recovery on packetloss is b0rked, currently just requesting a keyframe every second)
+- Support manual camera selection
 - Lots of error handling + recovery foo
 - Finishing the todo list
