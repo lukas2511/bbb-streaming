@@ -49,7 +49,7 @@ class Audio(WebRTC):
         self.appsink.connect("new-sample", self.new_sample, self.appsink)
 
         direction = GstWebRTC.WebRTCRTPTransceiverDirection.RECVONLY
-        caps = Gst.caps_from_string("application/x-rtp,media=audio,encoding-name=opus,payload=111")
+        caps = Gst.caps_from_string("application/x-rtp,media=audio,encoding-name=opus,payload=111,fec-type=ulp-red,do-nack=true")
         self.webrtc.emit('add-transceiver', direction, caps)
 
         self.webrtc.connect('on-negotiation-needed', self.on_negotiation_needed)

@@ -90,7 +90,7 @@ class Screenshare(WebRTC):
         self.appsink.connect("new-sample", self.new_sample, self.appsink)
 
         direction = GstWebRTC.WebRTCRTPTransceiverDirection.RECVONLY
-        caps = Gst.caps_from_string("application/x-rtp,media=video,encoding-name=vp8,clock-rate=90000,payload=98")
+        caps = Gst.caps_from_string("application/x-rtp,media=video,encoding-name=vp8,clock-rate=90000,payload=98,fec-type=ulp-red,do-nack=true")
         self.webrtc.emit('add-transceiver', direction, caps)
 
         self.webrtc.connect('on-negotiation-needed', self.on_negotiation_needed)

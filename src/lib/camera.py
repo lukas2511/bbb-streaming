@@ -118,12 +118,13 @@ class Camera(WebRTC):
         self.appsink.connect("new-sample", self.new_sample, self.appsink)
 
         direction = GstWebRTC.WebRTCRTPTransceiverDirection.RECVONLY
-        caps = Gst.caps_from_string("application/x-rtp,media=video,encoding-name=vp8,clock-rate=90000,ssrc=1,payload=98")
+        caps = Gst.caps_from_string("application/x-rtp,media=video,encoding-name=vp8,clock-rate=90000,ssrc=1,payload=98,fec-type=ulp-red,do-nack=true")
         self.webrtc.emit('add-transceiver', direction, caps)
 
         self.webrtc.connect('on-negotiation-needed', self.on_negotiation_needed)
         self.webrtc.connect('on-ice-candidate', self.send_ice_candidate_message)
         self.webrtc.connect('pad-added', self.on_incoming_stream)
+
         self.pipe.set_state(Gst.State.PLAYING)
 
         while self.running:
