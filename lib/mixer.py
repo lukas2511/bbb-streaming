@@ -63,8 +63,6 @@ class Mixer(object):
 
         self.pipe.set_state(Gst.State.PLAYING)
 
-        self.source = "camera"
-
         self.lasttime = time.time()
         self.frames = 0
 
@@ -97,7 +95,7 @@ class Mixer(object):
         self.audio_input.emit("push-buffer", buf)
 
     def new_sample(self, stype, source, sample):
-        if stype == "camera":
+        if stype == "video":
             buf = sample.get_buffer()
             buf.pts = 18446744073709551615
             buf.dts = 18446744073709551615

@@ -2,6 +2,7 @@
 
 import asyncio
 from .helpers import unasyncio
+from .webrtc import WebRTC
 import websockets
 import json
 import threading
@@ -52,23 +53,18 @@ class ScreenshareManager(object):
         elif msg['msg'] == 'added':
             self.add(msg['id'], msg['fields'])
 
-class Screenshare(threading.Thread):
+class Screenshare(WebRTC):
     def __init__(self, sessionmanager, fields, streammixer):
+        self.stype = "screenshare"
         self.sessionmanager = sessionmanager
         self.streammixer = streammixer
         self.fields = fields
-        self.running = True
-        self.ready = False
-        threading.Thread.__init__(self)
-        self.daemon = True
+        WebRTC.__init__(self)
 
     def new_sample(self, sink, data):
         sample = self.appsink.emit("pull-sample")
-        self.streammixer.new_sample("screenshare", self, sample)
+        self.streammixer.new_sample(self.stype, self, sample)
         return Gst.FlowReturn.OK
-
-    def stop(self):
-        self.running = False
 
     def run(self):
         self.loop = asyncio.new_event_loop()
@@ -112,18 +108,6 @@ class Screenshare(threading.Thread):
         self.loop.stop()
         self.loop.close()
 
-    def recv(self):
-        try:
-            raw = unasyncio(asyncio.wait_for(self.conn.recv(), timeout=0.1))
-        except asyncio.exceptions.TimeoutError:
-            return None
-        return json.loads(raw)
-
-    def send(self, msg):
-        loop = asyncio.new_event_loop()
-        loop.run_until_complete(self.conn.send(json.dumps(msg)))
-        loop.close()
-
     def send_sdp_offer(self, offer):
         print('Sending offer for screenshare')
         msg = {}
@@ -153,51 +137,6 @@ class Screenshare(threading.Thread):
         msg['sdpOffer'] = sdpoffer.strip()
 
         self.send(msg)
-
-    def on_negotiation_needed(self, element):
-        promise = Gst.Promise.new_with_change_func(self.on_offer_created, element, None)
-        element.emit('create-offer', None, promise)
-
-    def send_ice_candidate_message(self, _, mlineindex, candidate):
-        msg = {}
-        msg['id'] = 'iceCandidate'
-        msg['role'] = 'recv'
-        msg['type'] = 'screenshare'
-        msg['voiceBridge'] = self.sessionmanager.bbb_info['voicebridge']
-        msg['candidate'] = {'candidate': candidate, 'sdpMLineIndex': mlineindex}
-        self.send(msg)
-
-    def on_offer_created(self, promise, _, __):
-        promise.wait()
-        reply = promise.get_reply()
-        offer = reply['offer']
-        promise = Gst.Promise.new()
-        self.webrtc.emit('set-local-description', offer, promise)
-        promise.interrupt()
-        self.send_sdp_offer(offer)
-
-    def handle_sdp(self, msg):
-        if 'sdpAnswer' in msg:
-            sdp = msg['sdpAnswer']
-            print('Received sdp answer for screenshare')
-            res, sdpmsg = GstSdp.SDPMessage.new()
-            GstSdp.sdp_message_parse_buffer(bytes(sdp.encode()), sdpmsg)
-            answer = GstWebRTC.WebRTCSessionDescription.new(GstWebRTC.WebRTCSDPType.ANSWER, sdpmsg)
-            promise = Gst.Promise.new()
-            self.webrtc.emit('set-remote-description', answer, promise)
-            promise.interrupt()
-        elif 'candidate' in msg:
-            ice = msg['candidate']
-            candidate = ice['candidate']
-            #print("got ice candidate: %s" % candidate)
-            sdpmlineindex = ice['sdpMLineIndex']
-            self.webrtc.emit('add-ice-candidate', sdpmlineindex, candidate)
-        #else:
-        #    print(msg)
-
-    def on_incoming_stream(self, _, pad):
-        self.ready = True
-        print("Screenshare ready")
 
 class Switcher(object):
     def __init__(self, streammixer):

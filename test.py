@@ -36,6 +36,10 @@ sessionmanager.attach(chatmsg)
 class MyShell(cmd.Cmd):
     prompt = '(bbb) '
 
+    def do_keyframe(self, arg):
+        for camera in cameramanager.cameras.values():
+            camera.force_keyframe()
+
     def do_say(self, arg):
         timestamp = int(time.time())
         msg = {}
