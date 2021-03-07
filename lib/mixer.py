@@ -14,7 +14,7 @@ from gi.repository import GstSdp
 Gst.init(None)
 
 class Mixer(object):
-    def __init__(self):
+    def __init__(self, rtmpurl):
         self.running = True
 
         pipeline = "compositor background=black name=comp sink_1::alpha=1 sink_1::xpos=20 sink_1::ypos=700 sink_0::alpha=1 sink_0::xpos=220 sink_0::ypos=20 sync=true"
@@ -23,6 +23,7 @@ class Mixer(object):
         pipeline += " ! videoconvert"
         pipeline += " ! x264enc pass=4 quantizer=22 speed-preset=4"
         pipeline += " ! video/x-h264, profile=baseline"
+        pipeline += " ! queue"
         pipeline += " ! mux."
 
         pipeline += " appsrc name=presentation-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
@@ -45,10 +46,12 @@ class Mixer(object):
         pipeline += " ! audioresample"
         pipeline += " ! fdkaacenc bitrate=128000"
         pipeline += " ! audio/mpeg,rate=48000,channels=2"
+        pipeline += " ! queue"
         pipeline += " ! mux."
 
-        pipeline += " matroskamux name=mux"
-        pipeline += " ! tcpclientsink host=127.0.0.1 port=10000"
+        pipeline += " flvmux name=mux"
+        pipeline += " ! queue"
+        pipeline += " ! rtmpsink location=%s" % rtmpurl
 
         self.pipe = Gst.parse_launch(pipeline)
 

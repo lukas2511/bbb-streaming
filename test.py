@@ -12,12 +12,12 @@ import json
 import sys
 import time
 
-join_url = session.greenlight_join(sys.argv[1], sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else 'stream')
+join_url = session.greenlight_join(sys.argv[1], sys.argv[2])
 sessionmanager = session.SessionManager(join_url)
 sessionmanager.daemon = True
 sessionmanager.start()
 
-streammixer = mixer.Mixer()
+streammixer = mixer.Mixer(sys.argv[3])
 
 audiostream = audio.Audio(sessionmanager, streammixer)
 audiostream.start()

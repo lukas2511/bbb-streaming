@@ -7,7 +7,7 @@ Heavily work-in-progress, only partially functional.
 The whiteboard is definitively the hardest part to get right. Everything else just kinda depends on
 gstreamer not breaking every 5 minutes :D
 
-Example usage: python test.py your.bbb.server room-id-from-greenlight
+Example usage: python test.py your.bbb.server room-id-from-greenlight rtmp://server/app/path?auth=foobar
 
 Working:
 
@@ -19,7 +19,7 @@ Working:
 - Simple side-by-side scene with exactly 1 active webcam and the presentation/screenshare
 - Tracking camera of active speaker
 
-Output is muxed as matroska and sent to tcp localhost port 10000.
+Output is streamed using rtmp for now. How this is implemented will probably change.
 
 Todo:
 
