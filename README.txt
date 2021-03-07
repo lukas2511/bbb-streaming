@@ -17,13 +17,14 @@ Working:
 - Generating presentation canvas (including annotations) and converting it into an internal video stream
 - Automatic switching between presentation and screenshare
 - Simple side-by-side scene with exactly 1 active webcam and the presentation/screenshare
+- Tracking camera of active speaker
 
 Output is muxed as matroska and sent to tcp localhost port 10000.
 
 Todo:
 
 - Fixing the gstreamer webrtc video glitches (recovery on packetloss is b0rked, worst case should be able to just drop UDP ice candidates...)
-- Support multiple (or no) cameras / Camera selection
+- Support multiple (or no) cameras / Manual camera selection
 - Selection of multiple scenes (side-by-side, fullscreen cam/presentation)
 - Background for streams with whitespace
 - Control via chat commands for easy integration?

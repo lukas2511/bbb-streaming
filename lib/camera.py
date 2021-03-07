@@ -25,6 +25,9 @@ class CameraManager(object):
         self.sessionmanager.attach(self.listener)
 
         self.streammixer = streammixer
+        self.active_camera = None
+        self.active_speakers = {}
+        self.voice_users = {}
 
     def remove(self, msgid):
         if msgid in self.cameras:
@@ -33,21 +36,53 @@ class CameraManager(object):
             del self.cameras[msgid]
 
     def add(self, msgid, fields):
-        self.cameras[msgid] = Camera(self.sessionmanager, fields, self.streammixer)
+        self.cameras[msgid] = Camera(self.sessionmanager, fields, self)
         self.cameras[msgid].start()
 
+    def new_sample(self, stype, camera, sample):
+        if self.active_camera is None:
+            self.active_camera = camera.fields['userId']
+
+        if camera.fields['userId'] == self.active_camera:
+            self.streammixer.new_sample(stype, camera, sample)
+
     def listener(self, msg):
-        if 'collection' not in msg or msg['collection'] != 'video-streams':
+        if 'collection' not in msg:
             return
 
-        if msg['msg'] == 'removed':
-            self.remove(msg['id'])
-        elif msg['msg'] == 'added':
-            self.add(msg['id'], msg['fields'])
+        if msg['collection'] == 'video-streams':
+            if msg['msg'] == 'removed':
+                self.remove(msg['id'])
+            elif msg['msg'] == 'added':
+                self.add(msg['id'], msg['fields'])
+        elif msg['collection'] == 'voiceUsers':
+            if msg['msg'] == 'added':
+                self.voice_users[msg['id']] = msg['fields']
+            elif msg['msg'] == 'removed':
+                del self.voice_users[msg['id']]
+                return
+            elif msg['msg'] == 'changed':
+                self.voice_users[msg['id']].update(msg['fields'])
+
+            talking = self.voice_users[msg['id']]['talking']
+            userid = self.voice_users[msg['id']]['voiceUserId']
+
+            if talking and userid not in self.active_speakers:
+                self.active_speakers[userid] = time.time()
+            elif not talking and userid in self.active_speakers:
+                del self.active_speakers[userid]
+
+            print(self.active_speakers)
+            if self.active_speakers:
+                for userid, _ in sorted(self.active_speakers.items(), key=lambda x: x[1]):
+                    for camera in self.cameras.values():
+                        if camera.fields['userId'] == userid:
+                            self.active_camera = userid
+                            return
 
 class Camera(threading.Thread):
-    def __init__(self, sessionmanager, fields, streammixer):
-        self.streammixer = streammixer
+    def __init__(self, sessionmanager, fields, cameramanager):
+        self.cameramanager = cameramanager
         self.appsink = None
         self.ready = False
         self.sessionmanager = sessionmanager
@@ -61,7 +96,7 @@ class Camera(threading.Thread):
 
     def new_sample(self, sink, data):
         sample = self.appsink.emit("pull-sample")
-        self.streammixer.new_sample("camera", self, sample)
+        self.cameramanager.new_sample("camera", self, sample)
         return Gst.FlowReturn.OK
 
     def run(self):

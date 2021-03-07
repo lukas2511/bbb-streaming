@@ -33,9 +33,6 @@ def chatmsg(msg):
     print(msg['fields']['sender'] + ": " + msg['fields']['message'])
 sessionmanager.attach(chatmsg)
 
-# just a test script to get control over the websocket
-# doesn't do anything fancy yet
-
 class MyShell(cmd.Cmd):
     prompt = '(bbb) '
 
