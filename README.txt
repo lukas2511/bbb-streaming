@@ -7,7 +7,9 @@ Heavily work-in-progress, only partially functional.
 The whiteboard is definitively the hardest part to get right. Everything else just kinda depends on
 gstreamer not breaking every 5 minutes :D
 
-Example usage: python test.py your.bbb.server room-id-from-greenlight rtmp://server/app/path?auth=foobar
+Example usage: `python test.py your.bbb.server room-id-from-greenlight rtmp://server/app/path?auth=foobar`
+
+Or alternatively `docker run -t -i --rm=true lukas2511/bbb-streaming your.bbb.server room-id-from-greenlight rtmp://server/app/path?auth=foobar`
 
 Working:
 
