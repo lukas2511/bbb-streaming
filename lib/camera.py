@@ -72,7 +72,6 @@ class CameraManager(object):
             elif not talking and userid in self.active_speakers:
                 del self.active_speakers[userid]
 
-            print(self.active_speakers)
             if self.active_speakers:
                 for userid, _ in sorted(self.active_speakers.items(), key=lambda x: x[1]):
                     for camera in self.cameras.values():
