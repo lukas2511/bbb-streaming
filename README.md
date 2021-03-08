@@ -2,11 +2,11 @@
 
 Makes a presentation like this...
 
-![](pics/before.jpg | width=200)
+![](pics/before.jpg)
 
 streamable like this!
 
-![](pics/after.jpg | width=200)
+![](pics/after.jpg)
 
 Big Blue Button streaming without pressing a virtual camera against a remote controlled webbrowser..
 
