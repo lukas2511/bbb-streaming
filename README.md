@@ -1,6 +1,6 @@
 # BBB Streamer NG?
 
-Makes a presentation like this...
+Makes a conference like this...
 
 ![](pics/before.jpg)
 
