@@ -4,7 +4,7 @@ Makes a conference like this...
 
 ![](pics/before.jpg)
 
-streamable like this!
+...streamable like this!
 
 ![](pics/after.jpg)
 
