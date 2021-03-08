@@ -1,8 +1,16 @@
 # BBB Streamer NG?
 
+Makes a presentation like this...
+
+![](pics/before.jpg | width=200)
+
+streamable like this!
+
+![](pics/after.jpg | width=200)
+
 Big Blue Button streaming without pressing a virtual camera against a remote controlled webbrowser..
 
-Heavily work-in-progress, only partially functional.
+Heavily work-in-progress, but kinda functional.
 
 The whiteboard is definitively the hardest part to get right. Everything else just kinda depends on
 gstreamer not breaking every 5 minutes :D
@@ -27,7 +35,7 @@ Output is streamed using rtmp for now. How this is implemented will probably cha
 
 Todo:
 
-- Fixing the gstreamer webrtc video glitches (recovery on packetloss is b0rked, currently just requesting a keyframe every second)
-- Support manual camera selection
+- Fixing the gstreamer webrtc video glitches (recovery on packetloss is b0rked, currently enabling slight fec and requesting a keyframe every second)
+- Support different camera selections (follow-speaking/follow-presenter/manual selection)
 - Lots of error handling + recovery foo
 - Finishing the todo list
