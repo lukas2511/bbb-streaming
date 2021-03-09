@@ -121,7 +121,9 @@ class Screenshare(WebRTC):
         # no idea why/if this has to be here
         msg['record'] = True
         msg['userId'] = self.sessionmanager.bbb_info['internalUserID']
+        msg['callerName'] = self.sessionmanager.bbb_info['internalUserID']
         msg['userName'] = self.sessionmanager.bbb_info['fullname']
+        msg['hasAudio'] = False
 
         # fix gst codec parameters
         sdpoffer = ""
