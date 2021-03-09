@@ -8,6 +8,8 @@ Makes a conference like this...
 
 ![](pics/after.jpg)
 
+I also recorded a small video showing the basic features: https://www.youtube.com/watch?v=u9pTmzowIPc
+
 Big Blue Button streaming without pressing a virtual camera against a remote controlled webbrowser..
 
 Heavily work-in-progress, but kinda functional.
