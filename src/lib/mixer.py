@@ -3,6 +3,8 @@
 import time
 import threading
 
+from PIL import Image
+
 import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst
@@ -26,12 +28,9 @@ class Mixer(object):
         pipeline += " ! queue"
         pipeline += " ! mux."
 
-        pipeline += " filesrc location=images/bg.png"
-        pipeline += " ! decodebin"
-        pipeline += " ! videoconvert"
-        pipeline += " ! videoscale"
-        pipeline += " ! video/x-raw,width=1920,height=1080"
-        pipeline += " ! imagefreeze"
+        pipeline += " appsrc name=background-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=1/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
+        pipeline += " ! videorate"
+        pipeline += " ! queue"
         pipeline += " ! comp.sink_2"
 
         pipeline += " appsrc name=presentation-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=10/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
@@ -72,6 +71,9 @@ class Mixer(object):
         self.presentation_input = self.pipe.get_by_name("presentation-input")
         self.presentation_input.set_property("format", Gst.Format.TIME)
 
+        self.background_input = self.pipe.get_by_name("background-input")
+        self.background_input.set_property("format", Gst.Format.TIME)
+
         self.pipe.set_state(Gst.State.PLAYING)
         self.set_view("sbs")
 
@@ -81,8 +83,11 @@ class Mixer(object):
         self.cambuffer = Gst.Buffer.new_wrapped(b'\x00' * (4*1280*720))
         self.presbuffer = Gst.Buffer.new_wrapped(b'\x00' * (4*1920*1080))
 
+        self.bgbuffer = Gst.Buffer.new_wrapped(Image.open("images/bg.png").resize((1920, 1080)).convert("RGB").tobytes())
+
         self.push_camera_frames()
         self.push_presentation_frames()
+        self.push_background_frames()
 
     def set_view(self, view):
         if view == "sbs":
@@ -109,6 +114,11 @@ class Mixer(object):
 
     def stop(self):
         self.running = False
+
+    def push_background_frames(self):
+        if self.running:
+            threading.Timer(1, self.push_background_frames).start()
+        self.background_input.emit("push-buffer", self.bgbuffer)
 
     def push_camera_frames(self):
         if self.running:
