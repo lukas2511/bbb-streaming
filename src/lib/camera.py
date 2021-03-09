@@ -110,7 +110,7 @@ class Camera(WebRTC):
         pipeline += " ! videoconvert"
         pipeline += " ! queue"
         pipeline += " ! video/x-raw,width=1280,height=720,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1"
-        pipeline += " ! appsink name=output emit-signals=true drop=true sync=false"
+        pipeline += " ! appsink name=output emit-signals=true drop=false sync=true"
 
         self.pipe = Gst.parse_launch(pipeline)
         self.webrtc = self.pipe.get_by_name('recvonly')

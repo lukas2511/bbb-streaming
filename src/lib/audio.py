@@ -40,7 +40,7 @@ class Audio(WebRTC):
         pipeline += " ! opusdec"
         pipeline += " ! audioconvert"
         pipeline += " ! audioresample"
-        pipeline += " ! appsink name=output emit-signals=true drop=true sync=false caps=audio/x-raw,rate=48000,channels=2,format=U16LE,layout=interleaved"
+        pipeline += " ! appsink name=output emit-signals=true drop=false sync=true caps=audio/x-raw,rate=48000,channels=2,format=U16LE,layout=interleaved"
 
         self.pipe = Gst.parse_launch(pipeline)
         self.webrtc = self.pipe.get_by_name('recvonly')

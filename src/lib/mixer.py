@@ -25,6 +25,7 @@ class Mixer(object):
         pipeline += " ! videoconvert"
         pipeline += " ! x264enc pass=4 quantizer=22 speed-preset=4"
         pipeline += " ! video/x-h264, profile=baseline"
+        pipeline += " ! h264parse config-interval=1"
         pipeline += " ! queue"
         pipeline += " ! mux."
 
@@ -56,7 +57,7 @@ class Mixer(object):
 
         pipeline += " flvmux name=mux"
         pipeline += " ! queue"
-        pipeline += " ! rtmpsink location=%s" % rtmpurl
+        pipeline += " ! rtmpsink sync=true location=%s" % rtmpurl
 
         self.pipe = Gst.parse_launch(pipeline)
 
