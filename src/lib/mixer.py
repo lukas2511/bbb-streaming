@@ -87,7 +87,7 @@ class Mixer(object):
     def set_view(self, view):
         if view == "sbs":
             camera = {'xpos': 1420, 'ypos': 790, 'width': 480, 'height': 270, 'alpha': 1.0}
-            presentation = {'xpos': 20, 'ypos': 160, 'width': 1440, 'height': 810, 'alpha': 1.0}
+            presentation = {'xpos': 20, 'ypos': 96, 'width': 1440, 'height': 810, 'alpha': 1.0}
         elif view == "pip":
             camera = {'xpos': 1420, 'ypos': 790, 'width': 480, 'height': 270, 'alpha': 1.0}
             presentation = {'xpos': 0, 'ypos': 0, 'width': 1920, 'height': 1080, 'alpha': 1.0}
