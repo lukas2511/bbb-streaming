@@ -41,7 +41,7 @@ class SessionManager(threading.Thread):
         self.bbb_stuns = json.loads(tmpsession.get(self.bbb_server + "/bigbluebutton/api/stuns?sessionToken=" + self.bbb_token).text)
 
         self.stun_server = self.bbb_stuns['stunServers'][0]['url']
-        if self.stun_server.startswith('stun:') or self.stun_server.starts_with('stuns:'):
+        if self.stun_server.startswith('stun:') or self.stun_server.startswith('stuns:'):
             self.stun_server = self.stun_server.split(':')[1]
         else:
             self.stun_server = self.stun_server.split(':')[0]
