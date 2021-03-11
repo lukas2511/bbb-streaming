@@ -23,7 +23,7 @@ class Mixer(object):
         pipeline += " ! video/x-raw,width=1920,height=1080"
         #pipeline += " ! timeoverlay valignment=bottom halignment=left"
         pipeline += " ! videoconvert"
-        pipeline += " ! x264enc pass=4 quantizer=22 speed-preset=4"
+        pipeline += " ! x264enc pass=4 quantizer=22 speed-preset=4 key-int-max=50"
         pipeline += " ! video/x-h264, profile=baseline"
         pipeline += " ! h264parse config-interval=1"
         pipeline += " ! queue"
