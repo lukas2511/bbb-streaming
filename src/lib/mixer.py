@@ -105,6 +105,7 @@ class Mixer(object):
             presentation = {'xpos': 0, 'ypos': 0, 'width': 1920, 'height': 1080, 'alpha': 1.0}
         else:
             print("unknown view: %s" % view)
+            return
 
         for key, value in camera.items():
             sink = self.compositor.get_static_pad('sink_1')
