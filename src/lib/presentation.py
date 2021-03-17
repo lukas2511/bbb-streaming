@@ -35,6 +35,7 @@ class Presentation(object):
         self.active_slide = None
         self.annotations = {}
 
+        self.counter = 0
         self.lasttime = time.time()
         self.frames = 0
 
@@ -95,7 +96,7 @@ class Presentation(object):
         slide = self.slides[self.active_slide]
         svg = slide['raw'].replace('</svg>', '')
 
-        for annotation_id, annotation in self.annotations.items():
+        for annotation_id, annotation in sorted(self.annotations.items(), key=lambda v: v[1]['counter']):
             if annotation['whiteboardId'] != slide['whiteboardId']:
                 continue
 
@@ -216,13 +217,19 @@ class Presentation(object):
                 if 'status' in msg['fields']:
                     if msg['fields']['status'] == 'DRAW_START':
                         self.annotations[msg['id']] = msg['fields']['annotationInfo']
+                        self.annotations[msg['id']]['counter'] = self.counter
+                        self.counter += 1
                     elif msg['fields']['status'] == 'DRAW_UPDATE':
                         if msg['id'] in self.annotations:
                             self.annotations[msg['id']].update(msg['fields']['annotationInfo'])
+                            self.annotations[msg['id']]['counter'] = self.counter
+                            self.counter += 1
                         else:
                             return
                     elif msg['fields']['status'] == 'DRAW_END':
                         self.annotations[msg['id']] = msg['fields']['annotationInfo']
+                        self.annotations[msg['id']]['counter'] = self.counter
+                        self.counter += 1
                         print("Updating annotation %s" % msg['id'])
                         self.annotations[msg['id']]['svg'] = None
                         self.frame_updated = True
