@@ -21,6 +21,9 @@ Example usage: `python main.py --greenlight-url https://example.org/b/my-cool-ro
 
 Or alternatively with docker replace `python main.py` with `docker run -t -i --rm=true lukas2511/bbb-streaming` in the line above
 
+Inside the `stuff` directory you'll find a tampermonkey script (probably also working with greasemonkey or by injecting directly into your
+bbb backend) that adds four buttons to easily control scenes from within BBB :)
+
 Working:
 
 - Capturing audio
