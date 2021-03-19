@@ -58,8 +58,8 @@ class MyShell(cmd.Cmd):
         msg['id'] = 'fnord-chat-%d' % timestamp
         sessionmanager.send(msg)
 
-    def do_source(self, arg):
-        streammixer.source = arg
+    def do_view(self, arg):
+        streammixer.set_view(arg)
 
     def do_raw(self, arg):
         sessionmanager.send(json.loads(arg))
