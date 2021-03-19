@@ -43,7 +43,6 @@ class ScreenshareManager(object):
             self.remove(msgid)
 
         self.screenshares[msgid] = Screenshare(self.sessionmanager, fields, self.switcher)
-        self.screenshares[msgid].start()
         self.switcher.screenshare_active = True
 
     def listener(self, msg):

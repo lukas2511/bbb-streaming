@@ -40,7 +40,6 @@ class CameraManager(object):
 
     def add(self, msgid, fields):
         self.cameras[msgid] = Camera(self.sessionmanager, fields, self)
-        self.cameras[msgid].start()
 
     def new_sample(self, stype, camera, sample):
         if self.active_camera is None:
