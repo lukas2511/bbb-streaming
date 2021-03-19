@@ -4,4 +4,4 @@ RUN pacman -Syu --noconfirm && \
     rm -rf /var/cache/pacman/pkg
 WORKDIR /opt/stream/
 ADD src/ /opt/stream/
-ENTRYPOINT ["/opt/stream/test.py"]
+ENTRYPOINT ["/opt/stream/main.py"]
