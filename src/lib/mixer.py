@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
 import time
+import requests
 import threading
+import logging
+log = logging.getLogger('bbb-streamer')
 
 from PIL import Image
 
@@ -16,7 +19,7 @@ from gi.repository import GstSdp
 Gst.init(None)
 
 class Mixer(object):
-    def __init__(self, rtmpurl):
+    def __init__(self, rtmpurl, background):
         self.running = True
 
         pipeline = "compositor background=black sync=true name=comp"
@@ -84,7 +87,15 @@ class Mixer(object):
         self.cambuffer = Gst.Buffer.new_wrapped(b'\x00' * (4*1280*720))
         self.presbuffer = Gst.Buffer.new_wrapped(b'\x00' * (4*1920*1080))
 
-        self.bgbuffer = Gst.Buffer.new_wrapped(Image.open("images/bg.png").resize((1920, 1080)).convert("RGB").tobytes())
+        if background:
+            if background.startswith("http://") or background.startswith("https://"):
+                bgimage = Image.open(requests.get(background, stream=True).raw).resize((1920, 1080))
+            else:
+                bgimage = Image.open(background).resize((1920, 1080))
+        else:
+            bgimage = Image.open("images/bg.png").resize((1920, 1080))
+
+        self.bgbuffer = Gst.Buffer.new_wrapped(bgimage.convert("RGB").tobytes())
 
         self.push_camera_frames()
         self.push_presentation_frames()
@@ -104,8 +115,7 @@ class Mixer(object):
             camera = {'xpos': 0, 'ypos': 0, 'width': 1920, 'height': 1080, 'alpha': 0.0}
             presentation = {'xpos': 0, 'ypos': 0, 'width': 1920, 'height': 1080, 'alpha': 1.0}
         else:
-            print("unknown view: %s" % view)
-            return
+            log.warning("Unknown view: %s" % view)
 
         for key, value in camera.items():
             sink = self.compositor.get_static_pad('sink_1')
@@ -131,13 +141,6 @@ class Mixer(object):
         if self.running:
             threading.Timer(1/10, self.push_presentation_frames).start()
         self.presentation_input.emit("push-buffer", self.presbuffer)
-
-    def fpscount(self):
-        self.frames += 1
-        if self.lasttime < (time.time()-1):
-            print(self.frames)
-            self.frames = 0
-            self.lasttime = time.time()
 
     def new_audio_sample(self, source, sample):
         buf = sample.get_buffer()

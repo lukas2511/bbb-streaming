@@ -11,18 +11,6 @@ import cmd
 import sys
 from .helpers import unasyncio
 
-def greenlight_join(server, room, nick='stream'):
-    session = requests.session()
-
-    authenticity_token = session.get("https://" + server + "/b/" + room).text.split('name="authenticity_token"')[1].split('"')[1]
-    req = session.post("https://" + server + "/b/" + room, allow_redirects=False, data={'authenticity_token': authenticity_token, '/b/' + room + '[join_name]': nick})
-
-    while 'Location' in req.headers and 'checksum' in req.headers['Location']:
-        join_url = req.headers['Location']
-        req = session.get(join_url, allow_redirects=False)
-
-    return join_url
-
 class SessionManager(threading.Thread):
     def __init__(self, join_url):
         self.listeners = []
@@ -30,6 +18,8 @@ class SessionManager(threading.Thread):
         self.running = True
         self.ready = False
         threading.Thread.__init__(self)
+        self.daemon = True
+        self.start()
 
     def join(self, join_url):
         tmpsession = requests.session()
@@ -45,8 +35,6 @@ class SessionManager(threading.Thread):
             self.stun_server = self.stun_server.split(':')[1]
         else:
             self.stun_server = self.stun_server.split(':')[0]
-
-        # no idea: print(json.dumps(tmpsession.get(self.bbb_server + "/html5client/sockjs/info?cb=" + secrets.token_urlsafe(8)).text))
 
     def connect(self):
         loop = asyncio.new_event_loop()
@@ -83,9 +71,6 @@ class SessionManager(threading.Thread):
 
             for listener in self.listeners:
                 listener(msg)
-
-            #if 'collection' not in msg or msg['collection'] not in ['ping-pong']:
-            #    print(msg)
 
             if msg['msg'] == 'ping':
                 self.send({'msg': 'pong'})

@@ -7,6 +7,8 @@ import websockets
 import json
 import threading
 import time
+import logging
+log = logging.getLogger('bbb-streamer')
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -109,7 +111,7 @@ class Screenshare(WebRTC):
         self.loop.close()
 
     def send_sdp_offer(self, offer):
-        print('Sending offer for screenshare')
+        log.info('Sending offer for screenshare')
         msg = {}
         msg['id'] = 'start'
         msg['type'] = 'screenshare'

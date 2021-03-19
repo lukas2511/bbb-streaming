@@ -1,72 +1,44 @@
 #!/usr/bin/env python3
 
-from lib import session
-from lib import camera
-from lib import audio
-from lib import screenshare
-from lib import presentation
-from lib import mixer
+import argparse
+from lib import run
+import logging
 
-import cmd
-import json
-import sys
-import time
+logging.basicConfig()
+log = logging.getLogger('bbb-streamer')
 
-join_url = session.greenlight_join(sys.argv[1], sys.argv[2])
-sessionmanager = session.SessionManager(join_url)
-sessionmanager.daemon = True
-sessionmanager.start()
+def main():
+    argp = argparse.ArgumentParser(allow_abbrev=False)
 
-streammixer = mixer.Mixer(sys.argv[3])
+    argp.add_argument("--debug", help="Print debug log", action='store_true')
+    argp.add_argument("--background", help="Background image, either direct file path or via http/https URL")
 
-audiostream = audio.Audio(sessionmanager, streammixer)
-audiostream.start()
+    jnurlgroup = argp.add_argument_group('URL', 'Join using fully prepared API join URL')
+    jnurlgroup.add_argument("--join-url", help="Fully prepared API join URL, e.g. https://bbb.example.org/bigbluebutton/api/join?...")
 
-cameramanager = camera.CameraManager(sessionmanager, streammixer)
-screenshareswitch = screenshare.Switcher(streammixer)
-presentationstream = presentation.Presentation(sessionmanager, screenshareswitch)
-screensharemanager = screenshare.ScreenshareManager(sessionmanager, screenshareswitch)
+    glgroup = argp.add_argument_group('Greenlight', 'Join using Greenlight Frontend')
+    glgroup.add_argument("--greenlight-url", help="Greenlight URL, e.g. https://bbb.example.org/gl/my-cool-room")
+    glgroup.add_argument("--greenlight-name", help="Name for stream user", default="stream")
+    glgroup.add_argument("--greenlight-password", help="Greenlight password for protected rooms")
 
-def chatmsg(msg):
-    if 'collection' not in msg or msg['collection'] != 'group-chat-msg':
-        return
-    print(msg['fields']['sender'] + ": " + msg['fields']['message'])
+    argp.add_argument("--rtmp-url", help="Output RTMP URL, e.g. rtmp://example.org/app/stream?auth=key", required=True)
 
-    txt = msg['fields']['message']
-    if txt.startswith("!") and ' ' in txt:
-        cmd, args = txt[1:].split(' ', 1)
-        if cmd == 'view':
-            streammixer.set_view(args)
+    args = argp.parse_args()
 
-sessionmanager.attach(chatmsg)
+    if sum([0 if x is None else 1 for x in [args.join_url, args.greenlight_url]]) != 1:
+        argp.error("Exactly one of --join-url/--greenlight-url is required")
 
-class MyShell(cmd.Cmd):
-    prompt = '(bbb) '
+    if args.debug:
+        log.setLevel(logging.DEBUG)
 
-    def do_keyframe(self, arg):
-        for camera in cameramanager.cameras.values():
-            camera.force_keyframe()
+    if args.join_url:
+        log.info("Joining using prepared API join URL")
+        join_url = args.join_url
+    elif args.greenlight_url:
+        log.info("Joining using Greenlight frontend")
+        join_url = run.greenlight_join(args.greenlight_url, args.greenlight_name, args.greenlight_password)
 
-    def do_say(self, arg):
-        timestamp = int(time.time())
-        msg = {}
-        msg['msg'] = 'method'
-        msg['method'] = 'sendGroupChatMsg'
-        msg['params'] = []
-        msg['params'].append('MAIN-PUBLIC-GROUP-CHAT')
-        msg['params'].append({'color': '0', 'correlationId': '%s-%d' % (sessionmanager.bbb_info['internalUserID'], timestamp), 'sender': {'id': sessionmanager.bbb_info['internalUserID'], 'name': sessionmanager.bbb_info['fullname']}, 'message': arg})
-        msg['id'] = 'fnord-chat-%d' % timestamp
-        sessionmanager.send(msg)
+    run.start(join_url=join_url, rtmp_url=args.rtmp_url, background=args.background)
 
-    def do_view(self, arg):
-        streammixer.set_view(arg)
-
-    def do_raw(self, arg):
-        sessionmanager.send(json.loads(arg))
-
-try:
-    MyShell().cmdloop()
-except:
-    pass
-
-streammixer.stop()
+if __name__ == '__main__':
+    main()

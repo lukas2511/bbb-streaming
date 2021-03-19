@@ -7,6 +7,8 @@ import websockets
 import json
 import threading
 import time
+import logging
+log = logging.getLogger('bbb-streamer')
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -138,7 +140,7 @@ class Camera(WebRTC):
         self.loop.close()
 
     def send_sdp_offer(self, offer):
-        print('Sending offer for camera %s' % self.fields['stream'])
+        log.info('Sending offer for camera %s' % self.fields['stream'])
         msg = {}
         msg['id'] = 'start'
         msg['type'] = 'video'

@@ -7,6 +7,8 @@ import websockets
 import json
 import threading
 import time
+import logging
+log = logging.getLogger('bbb-streamer')
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -73,7 +75,7 @@ class Audio(WebRTC):
         return Gst.FlowReturn.OK
 
     def send_sdp_offer(self, offer):
-        print('Sending offer for audio')
+        log.info('Sending offer for audio')
         msg = {}
         msg['id'] = 'start'
         msg['type'] = 'audio'

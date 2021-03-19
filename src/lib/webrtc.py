@@ -6,6 +6,9 @@ from .helpers import unasyncio
 import threading
 import json
 
+import logging
+log = logging.getLogger('bbb-streamer')
+
 import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst
@@ -23,6 +26,7 @@ class WebRTC(threading.Thread):
         threading.Thread.__init__(self, *args, **kwargs)
         self.daemon = True
         self.force_keyframes()
+        self.start()
 
     def stop(self):
         self.running = False
@@ -112,4 +116,4 @@ class WebRTC(threading.Thread):
 
     def on_incoming_stream(self, _, pad):
         self.ready = True
-        print("WebRTC %r ready" % self)
+        log.info("WebRTC %r ready" % self)

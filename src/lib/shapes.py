@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import re
+import logging
+log = logging.getLogger('bbb-streamer')
 
 def yield_datapoints(annotation):
     for i in range(0, len(annotation['points']), 2):
@@ -122,5 +124,5 @@ def generate_svg(annotation, slide):
     elif annotation["type"] == "text":
         return annot_text(annotation, res=(width,height))
     else:
-        print("Unknown annotation type: %s" % annotation["type"])
+        log.error("Unknown annotation type: %s" % annotation["type"])
         return ""

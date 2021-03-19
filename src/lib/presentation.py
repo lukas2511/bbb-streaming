@@ -6,6 +6,9 @@ import io
 import ctypes
 import threading
 import time
+import queue
+import logging
+log = logging.getLogger('bbb-streamer')
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -25,7 +28,6 @@ from .gsthacks import map_gst_buffer
 class Presentation(object):
     def __init__(self, sessionmanager, streammixer):
         self.sessionmanager = sessionmanager
-        self.sessionmanager.attach(self.listener)
 
         self.streammixer = streammixer
 
@@ -63,6 +65,11 @@ class Presentation(object):
 
         self.push_frame()
 
+        self.messagequeue = queue.Queue()
+        self.messageparserthread = threading.Thread(target=self.parse_message_loop, daemon=True)
+        self.messageparserthread.start()
+        self.sessionmanager.attach(self.listener)
+
     def new_sample(self, sink, data):
         sample = self.appsink.emit("pull-sample")
         self.streammixer.new_sample("presentation", self, sample)
@@ -72,13 +79,6 @@ class Presentation(object):
         if self.running:
             threading.Timer(1/10, self.push_frame).start()
         self.appsrc.emit("push-buffer", self.framebuf)
-
-    def fpscount(self):
-        self.frames += 1
-        if self.lasttime < (time.time()-1):
-            print(self.frames)
-            self.frames = 0
-            self.lasttime = time.time()
 
     def update_frame_loop(self):
         while self.running:
@@ -132,13 +132,13 @@ class Presentation(object):
             self.frame = bytes(surface.get_data())
             ctypes.memmove(self.mapped_framebuf, self.frame, len(self.frame))
 
-        print("Update frame")
+        log.debug("Presentation frame updated")
 
     def add_slide(self, msg):
         slide_id = msg['id']
 
         if slide_id not in self.slides:
-            print("Adding slide %s" % slide_id)
+            log.debug("Adding slide %s" % slide_id)
             slide = {}
             slide['raw'] = requests.get(msg['fields']['svgUri']).text
             slide['whiteboardId'] = msg['fields']['id']
@@ -153,7 +153,7 @@ class Presentation(object):
                     return
                 if self.presentations[self.active_presentation]['id'] != slide['whiteboardId'].split('/')[0]:
                     return
-                print("setting active slide to %s (new slide)" % slide_id)
+                log.debug("Setting active slide to %s (new slide)" % slide_id)
                 self.active_slide = slide_id
                 self.frame_updated = True
 
@@ -166,7 +166,22 @@ class Presentation(object):
     def listener(self, msg):
         if 'collection' not in msg:
             return
+        self.messagequeue.put(msg)
 
+    def parse_message_loop(self):
+        while True:
+            msg = self.messagequeue.get()
+            if msg == 'stop':
+                break
+            self.parse_message(msg)
+
+    def stop(self):
+        self.running = False
+        self.messagequeue.put("stop")
+        self.frameupdaterthread.join()
+        self.messageparserthread.join()
+
+    def parse_message(self, msg):
         if msg['collection'] == 'presentations':
             if msg['msg'] == 'added':
                 self.presentations[msg['id']] = msg['fields']
@@ -189,7 +204,7 @@ class Presentation(object):
                     self.active_presentation = msg['id']
                     for slide_id, slide in self.slides.items():
                         if slide['whiteboardId'] == self.presentations[self.active_presentation]['active_slide']:
-                            print("setting active slide to %s (presentation changed)" % slide_id)
+                            log.debug("Setting active slide to %s (presentation changed)" % slide_id)
                             self.active_slide = slide_id
                             self.frame_updated = True
                             break
@@ -202,12 +217,12 @@ class Presentation(object):
             elif msg['msg'] == 'changed':
                 self.slides[msg['id']]['current'] = msg['fields']['current']
                 if self.slides[msg['id']]['current']:
-                    print("setting active slide to %s (slide changed)" % msg['id'])
+                    log.debug("Setting active slide to %s (slide changed)" % msg['id'])
                     self.active_slide = msg['id']
                     self.presentations[self.active_presentation]['active_slide'] = self.slides[self.active_slide]['whiteboardId']
                     self.frame_updated = True
             else:
-                print(msg)
+                log.warning("Unknown message: %r" % msg)
         elif msg['collection'] == 'annotations':
             if msg['msg'] == 'removed':
                 if msg['id'] in self.annotations:
@@ -230,24 +245,22 @@ class Presentation(object):
                         self.annotations[msg['id']] = msg['fields']['annotationInfo']
                         self.annotations[msg['id']]['counter'] = self.counter
                         self.counter += 1
-                        print("Updating annotation %s" % msg['id'])
+                        log.debug("Updating annotation %s" % msg['id'])
                         self.annotations[msg['id']]['svg'] = None
                         self.frame_updated = True
                     else:
-                        print("wat")
-                        print(msg['fields']['status'])
+                        log.warning("Unknown message: %r" % msg)
                         return
                 elif 'status' in msg['fields']['annotationInfo'] and msg['fields']['annotationInfo']['status'] == 'DRAW_END':
                     self.annotations[msg['id']] = msg['fields']['annotationInfo']
-                    print("Updating annotation %s" % msg['id'])
+                    log.debug("Updating annotation %s" % msg['id'])
                     self.annotations[msg['id']]['svg'] = None
                     self.frame_updated = True
             else:
-                print("wat")
-                print(msg)
+                log.warning("Unknown message: %r" % msg)
 
         elif msg['collection'] == 'slide-positions':
             pass # not supported yet
 
         elif 'slide' in msg['collection'] or 'annot' in msg['collection']:
-            print(msg)
+            log.warning("Unknown message: %r" % msg)
