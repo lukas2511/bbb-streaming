@@ -17,9 +17,9 @@ Heavily work-in-progress, but kinda functional.
 The whiteboard is definitively the hardest part to get right. Everything else just kinda depends on
 gstreamer not breaking every 5 minutes :D
 
-Example usage: `python test.py your.bbb.server room-id-from-greenlight rtmp://server/app/path?auth=foobar`
+Example usage: `python main.py --greenlight-url https://example.org/b/my-cool-room --rtmp-url rtmp://server/app/path?auth=foobar`
 
-Or alternatively `docker run -t -i --rm=true lukas2511/bbb-streaming your.bbb.server room-id-from-greenlight rtmp://server/app/path?auth=foobar`
+Or alternatively with docker replace `python main.py` with `docker run -t -i --rm=true lukas2511/bbb-streaming` in the line above
 
 Working:
 
@@ -40,4 +40,5 @@ Todo:
 - Fixing the gstreamer webrtc video glitches (recovery on packetloss is b0rked, currently enabling slight fec and requesting a keyframe every second)
 - Support different camera selections (follow-speaking/follow-presenter/manual selection)
 - Lots of error handling + recovery foo
+- Support 4:3 inputs (currently has black border)
 - Finishing the todo list
