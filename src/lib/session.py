@@ -19,7 +19,16 @@ class SessionManager(threading.Thread):
         self.ready = False
         threading.Thread.__init__(self)
         self.daemon = True
+
+        self.users = {}
+
         self.start()
+
+    def get_user_by_internal_id(self, userid):
+        for user in self.users.values():
+            if user['userId'] == userid:
+                return user
+        return None
 
     def join(self, join_url):
         tmpsession = requests.session()
@@ -74,6 +83,16 @@ class SessionManager(threading.Thread):
 
             if msg['msg'] == 'ping':
                 self.send({'msg': 'pong'})
+
+            if 'collection' not in msg:
+                continue
+
+            if msg['collection'] == 'users':
+                if msg['msg'] == 'added':
+                    self.users[msg['id']] = msg['fields']
+                    self.users[msg['id']]['_id'] = msg['id']
+                elif msg['msg'] == 'changed':
+                    self.users[msg['id']].update(msg['fields'])
 
     def recv(self):
         raw = unasyncio(self.websocket.recv())
