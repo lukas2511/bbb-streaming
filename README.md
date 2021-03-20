@@ -45,4 +45,5 @@ Todo:
 - Fixing the gstreamer webrtc video glitches (recovery on packetloss is b0rked, currently enabling slight fec and requesting a keyframe every second)
 - Support different camera selections (follow-speaking/follow-presenter/manual selection)
 - Lots of error handling + recovery foo
+- Clean shutdown (some threads seem to be doing weird stuff :D)
 - Finishing the todo list
