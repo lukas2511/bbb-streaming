@@ -25,6 +25,8 @@ def annot_pencil(annotation, res):
         if c == 1:
             x, y = datapoints.pop(0)
             svg += 'M%s, %s ' % (x*width, y*height)
+            if len(datapoints) == 0 and len(annotation['commands']) == 1:
+                svg += 'L%s, %s ' % (x*width, y*height)
         elif c == 2:
             x, y = datapoints.pop(0)
             svg += 'L%s, %s ' % (x*width, y*height)
