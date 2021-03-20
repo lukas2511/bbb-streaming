@@ -36,6 +36,7 @@ Working:
 - Tracking camera of active speaker
 - Background image for streams
 - Selection of multiple scenes (side-by-side, fullscreen cam/presentation) using chat commands (`!view <sbs|pip|cam|pres>`)
+- Support for 4:3 (and other weird) ratio inputs (resized to fit + transparent border)
 
 Output is streamed using rtmp for now. How this is implemented will probably change.
 
@@ -44,5 +45,4 @@ Todo:
 - Fixing the gstreamer webrtc video glitches (recovery on packetloss is b0rked, currently enabling slight fec and requesting a keyframe every second)
 - Support different camera selections (follow-speaking/follow-presenter/manual selection)
 - Lots of error handling + recovery foo
-- Support 4:3 inputs (currently has black border)
 - Finishing the todo list

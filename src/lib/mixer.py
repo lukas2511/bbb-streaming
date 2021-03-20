@@ -33,20 +33,12 @@ class Mixer(object):
         pipeline += " ! mux."
 
         pipeline += " appsrc name=background-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=1/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
-        pipeline += " ! videorate"
-        pipeline += " ! queue"
         pipeline += " ! comp.sink_2"
 
-        pipeline += " appsrc name=presentation-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=10/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
-        pipeline += " ! videorate"
-        pipeline += " ! queue"
-        pipeline += " ! videoscale"
+        pipeline += " appsrc name=presentation-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGBA,framerate=10/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
         pipeline += " ! comp.sink_0"
 
-        pipeline += " appsrc name=camera-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1280,height=720,format=RGB,framerate=25/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
-        pipeline += " ! videorate"
-        pipeline += " ! queue"
-        pipeline += " ! videoscale"
+        pipeline += " appsrc name=camera-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1280,height=720,format=RGBA,framerate=25/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
         pipeline += " ! comp.sink_1"
 
         pipeline += " appsrc name=audio-input emit-signals=false do-timestamp=true is-live=true block=true caps=audio/x-raw,rate=48000,channels=2,format=U16LE,layout=interleaved"
@@ -79,13 +71,17 @@ class Mixer(object):
         self.background_input.set_property("format", Gst.Format.TIME)
 
         self.pipe.set_state(Gst.State.PLAYING)
-        self.set_view("sbs")
+
+        self.camera_aspect = 16 / 9
+        self.presentation_aspect = 16 / 9
+        self.current_view = "sbs"
+        self.set_view(self.current_view)
 
         self.lasttime = time.time()
         self.frames = 0
 
-        self.cambuffer = Gst.Buffer.new_wrapped(b'\x00' * (4*1280*720))
-        self.presbuffer = Gst.Buffer.new_wrapped(b'\x00' * (4*1920*1080))
+        self.cambuffer = (Gst.Buffer.new_wrapped(b'\x00' * (4*1280*720)), (1280, 720))
+        self.presbuffer = (Gst.Buffer.new_wrapped(b'\x00' * (4*1920*1080)), (1920, 1080))
 
         if background:
             if background.startswith("http://") or background.startswith("https://"):
@@ -103,11 +99,29 @@ class Mixer(object):
 
     def set_view(self, view):
         if view == "sbs":
-            camera = {'xpos': 1420, 'ypos': 790, 'width': 480, 'height': 270, 'alpha': 1.0}
-            presentation = {'xpos': 20, 'ypos': 96, 'width': 1440, 'height': 810, 'alpha': 1.0}
+            presentation_width = 1440
+            presentation_height = presentation_width / self.presentation_aspect
+            if presentation_height > (1080-96-60):
+                presentation_height = 1080-96-60
+                presentation_width = presentation_height * self.presentation_aspect
+
+            camera_width = 480
+            camera_height = camera_width / self.camera_aspect
+
+            camera = {'xpos': (1920 - camera_width - 20), 'ypos': (1080 - camera_height - 20), 'width': camera_width, 'height': camera_height, 'alpha': 1.0}
+            presentation = {'xpos': 20, 'ypos': 96, 'width': presentation_width, 'height': presentation_height, 'alpha': 1.0}
         elif view == "pip":
-            camera = {'xpos': 1420, 'ypos': 790, 'width': 480, 'height': 270, 'alpha': 1.0}
-            presentation = {'xpos': 0, 'ypos': 0, 'width': 1920, 'height': 1080, 'alpha': 1.0}
+            presentation_width = 1920
+            presentation_height = presentation_width / self.presentation_aspect
+            if presentation_height > 1080:
+                presentation_height = 1080
+                presentation_width = presentation_height * self.presentation_aspect
+
+            camera_width = 480
+            camera_height = camera_width / self.camera_aspect
+
+            camera = {'xpos': (1920 - camera_width), 'ypos': (1080 - camera_height), 'width': camera_width, 'height': camera_height, 'alpha': 1.0}
+            presentation = {'xpos': 0, 'ypos': 0, 'width': presentation_width, 'height': presentation_height, 'alpha': 1.0}
         elif view == "cam":
             camera = {'xpos': 0, 'ypos': 0, 'width': 1920, 'height': 1080, 'alpha': 1.0}
             presentation = {'xpos': 0, 'ypos': 0, 'width': 1920, 'height': 1080, 'alpha': 0.0}
@@ -116,6 +130,9 @@ class Mixer(object):
             presentation = {'xpos': 0, 'ypos': 0, 'width': 1920, 'height': 1080, 'alpha': 1.0}
         else:
             log.warning("Unknown view: %s" % view)
+            return
+
+        self.current_view = view
 
         for key, value in camera.items():
             sink = self.compositor.get_static_pad('sink_1')
@@ -132,15 +149,48 @@ class Mixer(object):
             threading.Timer(1, self.push_background_frames).start()
         self.background_input.emit("push-buffer", self.bgbuffer)
 
+    def setsinkres(self, sink, res):
+        curcaps = sink.get_property("caps")
+        curwidth, curheight = curcaps.get_structure(0).get_value("width"), curcaps.get_structure(0).get_value("height")
+        if curwidth != res[0] or curheight != res[1]:
+            caps = curcaps.copy()
+            caps.set_value("width", res[0])
+            caps.set_value("height", res[1])
+            sink.set_property("caps", caps)
+            return True
+        return False
+
     def push_camera_frames(self):
         if self.running:
             threading.Timer(1/25, self.push_camera_frames).start()
-        self.camera_input.emit("push-buffer", self.cambuffer)
+
+        buf, (width, height) = self.cambuffer
+        changed = False
+        if self.setsinkres(self.camera_input, (width, height)):
+            self.camera_aspect = width / height
+            changed = True
+
+        self.camera_input.emit("push-buffer", self.cambuffer[0])
+        if changed:
+            self.background_input.emit("push-buffer", self.bgbuffer)
+            self.presentation_input.emit("push-buffer", self.presbuffer[0])
+            self.set_view(self.current_view)
 
     def push_presentation_frames(self):
         if self.running:
             threading.Timer(1/10, self.push_presentation_frames).start()
-        self.presentation_input.emit("push-buffer", self.presbuffer)
+
+        buf, (width, height) = self.presbuffer
+        changed = False
+        if self.setsinkres(self.presentation_input, (width, height)):
+            self.presentation_aspect = width / height
+            changed = True
+
+        self.presentation_input.emit("push-buffer", self.presbuffer[0])
+        if changed:
+            self.background_input.emit("push-buffer", self.bgbuffer)
+            self.camera_input.emit("push-buffer", self.cambuffer[0])
+            self.set_view(self.current_view)
 
     def new_audio_sample(self, source, sample):
         buf = sample.get_buffer()
@@ -150,17 +200,20 @@ class Mixer(object):
 
     def new_sample(self, stype, source, sample):
         if stype == "video":
+            caps = sample.get_caps().get_structure(0)
+            width, height = caps.get_value("width"), caps.get_value("height")
             buf = sample.get_buffer()
             buf.pts = 18446744073709551615
             buf.dts = 18446744073709551615
             buf.duration = 40000000
-            self.cambuffer = buf
+            self.cambuffer = (buf, (width, height))
         elif stype == "presentation":
+            caps = sample.get_caps().get_structure(0)
+            width, height = caps.get_value("width"), caps.get_value("height")
             buf = sample.get_buffer()
             buf.pts = 18446744073709551615
             buf.dts = 18446744073709551615
             buf.duration = 40000000
-            self.presbuffer = buf
-            #self.presentation_input.emit("push-sample", sample)
+            self.presbuffer = (buf, (width, height))
 
 

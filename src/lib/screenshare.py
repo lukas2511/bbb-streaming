@@ -82,7 +82,7 @@ class Screenshare(WebRTC):
         pipeline += " ! videoconvert"
         pipeline += " ! videorate"
         pipeline += " ! queue"
-        pipeline += " ! video/x-raw,width=1920,height=1080,format=RGB,framerate=10/1,pixel-aspect-ratio=1/1"
+        pipeline += " ! video/x-raw,width=1920,height=1080,format=RGBA,framerate=10/1,pixel-aspect-ratio=1/1"
         pipeline += " ! appsink name=output emit-signals=true drop=false sync=true"
 
         self.pipe = Gst.parse_launch(pipeline)

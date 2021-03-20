@@ -41,6 +41,7 @@ class Presentation(object):
         self.lasttime = time.time()
         self.frames = 0
 
+        self.frameres = (1920, 1080)
         self.framesvg = None
         self.frame = None
         self.framebuf = Gst.Buffer.new_wrapped(b'\x00' * (4*1920*1080))
@@ -50,7 +51,7 @@ class Presentation(object):
 
         pipeline = "appsrc name=input emit-signals=false format=time do-timestamp=true is-live=true block=true caps=video/x-raw,width=1920,height=1080,format=BGRA,framerate=10/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
         pipeline += " ! videoconvert"
-        pipeline += " ! appsink name=output emit-signals=true drop=false sync=true caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=10/1,pixel-aspect-ratio=1/1"
+        pipeline += " ! appsink name=output emit-signals=true drop=false sync=true caps=video/x-raw,format=RGBA,framerate=10/1,pixel-aspect-ratio=1/1"
 
         self.pipe = Gst.parse_launch(pipeline)
         self.appsink = self.pipe.get_by_name('output')
@@ -113,9 +114,6 @@ class Presentation(object):
         if svg != self.framesvg:
             self.framesvg = svg
 
-            surface = cairo.ImageSurface(cairo.FORMAT_RGB24, 1920, 1080)
-            context = cairo.Context(surface)
-
             handle = Rsvg.Handle()
             svghandle = handle.new_from_data(self.framesvg.encode())
 
@@ -123,9 +121,29 @@ class Presentation(object):
             scale_h = 1080 / svghandle.get_dimensions().height
 
             if scale_w > scale_h:
-                context.scale(scale_h, scale_h)
+                scale = scale_h
+                width = int(svghandle.get_dimensions().width * scale_h)
+                height = int(svghandle.get_dimensions().height * scale_h)
             else:
-                context.scale(scale_w, scale_w)
+                scale = scale_w
+                width = int(svghandle.get_dimensions().width * scale_w)
+                height = int(svghandle.get_dimensions().height * scale_w)
+
+            surface = cairo.ImageSurface(cairo.FORMAT_RGB24, width, height)
+            context = cairo.Context(surface)
+            context.scale(scale, scale)
+
+            if self.frameres != (width, height):
+                self.frameres = (width, height)
+
+                curcaps = self.appsrc.get_property("caps")
+                curwidth, curheight = curcaps.get_structure(0).get_value("width"), curcaps.get_structure(0).get_value("height")
+                if curwidth != width or curheight != height:
+                    caps = curcaps.copy()
+                    caps.set_value("width", width)
+                    caps.set_value("height", height)
+                    self.appsrc.set_property("caps", caps)
+                    log.info("Resized presentation canvas")
 
             svghandle.render_cairo(context)
 
