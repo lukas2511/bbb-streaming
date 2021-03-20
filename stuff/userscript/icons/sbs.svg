@@ -34,17 +34,17 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="3.959798"
-     inkscape:cx="513.8839"
-     inkscape:cy="21.726104"
+     inkscape:zoom="0.5"
+     inkscape:cx="587.6161"
+     inkscape:cy="184.74079"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      inkscape:document-rotation="0"
      showgrid="false"
-     inkscape:window-width="3834"
-     inkscape:window-height="2109"
-     inkscape:window-x="1920"
-     inkscape:window-y="22"
+     inkscape:window-width="954"
+     inkscape:window-height="829"
+     inkscape:window-x="4800"
+     inkscape:window-y="1302"
      inkscape:window-maximized="1"
      showguides="false" />
   <metadata
@@ -63,6 +63,13 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1">
+    <rect
+       style="fill:#aaffee;stroke:none;stroke-width:0.264583"
+       id="rect42"
+       width="160"
+       height="90"
+       x="0"
+       y="0" />
     <g
        id="g984"
        transform="matrix(0.99221516,0,0,0.99267966,-12.699628,-4.0014252)"
@@ -156,7 +163,7 @@
          id="path943" />
     </g>
     <ellipse
-       style="fill:#00ffff;stroke:#000000;stroke-width:0.264583"
+       style="fill:#00ccff;stroke:#000000;stroke-width:0.264583"
        id="path1051"
        cx="144.79979"
        cy="18.603516"
@@ -164,14 +171,14 @@
        ry="7.321558" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:3.52778px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#00ffff;fill-opacity:1;stroke:#00ffff;stroke-width:0.264583"
+       style="font-style:normal;font-weight:normal;font-size:3.52778px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#00ccff;fill-opacity:1;stroke:#00ccff;stroke-width:0.264583;"
        x="137.17938"
        y="30.628263"
        id="text1055"><tspan
          sodipodi:role="line"
          x="137.17938"
          y="30.628263"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52778px;font-family:'Comic Sans MS';-inkscape-font-specification:'Comic Sans MS';fill:#00ffff;stroke:#00ffff;stroke-width:0.264583"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52778px;font-family:'Comic Sans MS';-inkscape-font-specification:'Comic Sans MS';fill:#00ccff;stroke:#00ccff;stroke-width:0.264583;"
          id="tspan1057">Cool Conf</tspan></text>
     <g
        id="g2684"
