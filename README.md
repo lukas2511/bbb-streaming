@@ -2,11 +2,11 @@
 
 Makes a conference like this...
 
-![](pics/before.jpg)
+![](stuff/pics/bbb.jpg)
 
 ...streamable like this!
 
-![](pics/after.jpg)
+![](stuff/pics/stream.jpg)
 
 I also recorded a small video showing the basic features: https://www.youtube.com/watch?v=u9pTmzowIPc
 
