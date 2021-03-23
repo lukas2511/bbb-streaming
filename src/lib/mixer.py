@@ -25,9 +25,12 @@ class Mixer(object):
         pipeline = "compositor background=black sync=true name=comp"
         pipeline += " ! video/x-raw,width=1920,height=1080"
         pipeline += " ! videoconvert"
+        pipeline += " ! videorate"
+        pipeline += " ! queue"
         pipeline += " ! x264enc pass=4 quantizer=22 speed-preset=4 key-int-max=50"
         pipeline += " ! video/x-h264, profile=baseline"
         pipeline += " ! h264parse config-interval=1"
+        pipeline += " ! queue"
         pipeline += " ! mux."
 
         pipeline += " appsrc name=background-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=1/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
@@ -42,11 +45,10 @@ class Mixer(object):
         #pipeline += " ! timeoverlay valignment=top halignment=left"
         pipeline += " ! comp.sink_1"
 
-        pipeline += " appsrc name=audio-input emit-signals=false do-timestamp=true is-live=true block=true caps=audio/x-raw,rate=48000,channels=2,format=U16LE,layout=interleaved"
-        pipeline += " ! audioconvert"
-        pipeline += " ! audioresample"
+        pipeline += " appsrc name=audio-input emit-signals=false do-timestamp=true is-live=true block=true caps=audio/x-raw,rate=44100,channels=2,format=S16LE,layout=interleaved,channel-mask=(bitmask)0x0000000000000003"
+        pipeline += " ! queue"
         pipeline += " ! fdkaacenc bitrate=128000"
-        pipeline += " ! audio/mpeg,rate=48000,channels=2"
+        pipeline += " ! queue"
         pipeline += " ! mux."
 
         pipeline += " flvmux name=mux"
@@ -212,7 +214,7 @@ class Mixer(object):
             buf = sample.get_buffer()
             buf.pts = 18446744073709551615
             buf.dts = 18446744073709551615
-            buf.duration = 40000000
+            buf.duration = 100000000
             self.presbuffer = (buf, (width, height))
 
 

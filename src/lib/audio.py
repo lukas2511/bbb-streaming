@@ -44,7 +44,7 @@ class Audio(WebRTC):
         pipeline += " ! opusdec"
         pipeline += " ! audioconvert"
         pipeline += " ! audioresample"
-        pipeline += " ! appsink name=output emit-signals=true drop=false sync=true caps=audio/x-raw,rate=48000,channels=2,format=U16LE,layout=interleaved"
+        pipeline += " ! appsink name=output emit-signals=true drop=false sync=true caps=audio/x-raw,rate=44100,channels=2,format=S16LE,layout=interleaved,channel-mask=(bitmask)0x0000000000000003"
 
         log.debug("Starting audio webrtc pipeline")
         self.pipe = Gst.parse_launch(pipeline)
