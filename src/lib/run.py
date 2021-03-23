@@ -7,40 +7,48 @@ import sys
 import time
 from . import session, camera, audio, screenshare, presentation, mixer
 
-def greenlight_join(url, name, password):
-    session = requests.session()
+import logging
+log = logging.getLogger('bbb-streamer')
 
+def greenlight_join(url, name, password):
+    log.debug("Trying to acquire join url from greenlight: %s (%s access code)" % (url, 'with' if password else 'without'))
+
+    session = requests.session()
     html = session.get(url).text
-    try:
-        room = html.split('room="')[1].split('"')[0]
-        authenticity_token = html.split('name="authenticity_token"')[1].split('"')[1]
-        if not room or not authenticity_token:
-            raise Exception()
-    except:
-        raise Exception("Unable to access greenlight frontend (incorrect url?)")
+
+    if 'name="authenticity_token"' not in html:
+        raise Exception("Greenlight authenticity token not found (layout changed?)")
+    authenticity_token = html.split('name="authenticity_token"')[1].split('"')[1]
 
     if '"room[access_code]"' in html:
         if not password:
-            raise Exception("Given greenlight room requires a password but none was provided")
-        try:
-            html = session.post(url + "/login", data={'authenticity_token': authenticity_token, 'room[access_code]': password}).text
-            room = html.split('room="')[1].split('"')[0]
-            authenticity_token = html.split('name="authenticity_token"')[1].split('"')[1]
-            if not room or not authenticity_token:
-                raise Exception()
-        except:
-            raise Exception("Access to greenlight room failed (invalid access code?)")
+            raise Exception("Greenlight room requires an access code but none was provided")
+        html = session.post(url + "/login", data={'authenticity_token': authenticity_token, 'room[access_code]': password}).text
+        if '"room[access_code]"' in html:
+            raise Exception("Greenlight access code seems to be invalid")
 
-    try:
-        req = session.post(url, allow_redirects=False, data={'authenticity_token': authenticity_token, '/b/' + room + '[join_name]': name})
+        if 'name="authenticity_token"' not in html:
+            raise Exception("Greenlight authenticity token not found after providing access code (layout changed? invalid access code?)")
 
-        while 'Location' in req.headers and 'checksum' in req.headers['Location']:
-            join_url = req.headers['Location']
-            req = session.get(join_url, allow_redirects=False)
+        authenticity_token = html.split('name="authenticity_token"')[1].split('"')[1]
 
-        return join_url
-    except:
-        raise Exception("Unable to acquire join URL (weird loadbalancing setup / non-standard paths?)")
+    if 'room="' not in html:
+        raise Exception("Greenlight room name not found (layout changed?)")
+    room = html.split('room="')[1].split('"')[0]
+
+    req = session.post(url, allow_redirects=False, data={'authenticity_token': authenticity_token, '/b/' + room + '[join_name]': name})
+
+    if ('join-name="%s"' % name) in req.text:
+        raise Exception("Greenlight room is closed and is not set up to auto-open")
+
+    if 'Location' not in req.headers:
+        raise Exception("Greenlight is not redirecting to BBB, something has gone wrong")
+
+    while 'Location' in req.headers and 'checksum' in req.headers['Location']:
+        join_url = req.headers['Location']
+        req = session.get(join_url, allow_redirects=False)
+
+    return join_url
 
 def start(join_url, rtmp_url, background):
     sessionmanager = session.SessionManager(join_url)

@@ -24,30 +24,29 @@ class Mixer(object):
 
         pipeline = "compositor background=black sync=true name=comp"
         pipeline += " ! video/x-raw,width=1920,height=1080"
-        #pipeline += " ! timeoverlay valignment=bottom halignment=left"
         pipeline += " ! videoconvert"
         pipeline += " ! x264enc pass=4 quantizer=22 speed-preset=4 key-int-max=50"
         pipeline += " ! video/x-h264, profile=baseline"
         pipeline += " ! h264parse config-interval=1"
-        pipeline += " ! queue"
         pipeline += " ! mux."
 
         pipeline += " appsrc name=background-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGB,framerate=1/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
+        #pipeline += " ! timeoverlay valignment=bottom halignment=left"
         pipeline += " ! comp.sink_2"
 
         pipeline += " appsrc name=presentation-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1920,height=1080,format=RGBA,framerate=10/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
+        #pipeline += " ! timeoverlay valignment=bottom halignment=right"
         pipeline += " ! comp.sink_0"
 
         pipeline += " appsrc name=camera-input emit-signals=false do-timestamp=true is-live=true block=false caps=video/x-raw,width=1280,height=720,format=RGBA,framerate=25/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
+        #pipeline += " ! timeoverlay valignment=top halignment=left"
         pipeline += " ! comp.sink_1"
 
         pipeline += " appsrc name=audio-input emit-signals=false do-timestamp=true is-live=true block=true caps=audio/x-raw,rate=48000,channels=2,format=U16LE,layout=interleaved"
-        pipeline += " ! queue"
         pipeline += " ! audioconvert"
         pipeline += " ! audioresample"
         pipeline += " ! fdkaacenc bitrate=128000"
         pipeline += " ! audio/mpeg,rate=48000,channels=2"
-        pipeline += " ! queue"
         pipeline += " ! mux."
 
         pipeline += " flvmux name=mux"

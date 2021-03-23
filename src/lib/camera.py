@@ -43,6 +43,7 @@ class CameraManager(object):
 
     def new_sample(self, stype, camera, sample):
         if self.active_camera is None:
+            log.debug("Switching active camera to %s" % camera.fields['userId'])
             self.active_camera = camera.fields['userId']
 
         if camera.fields['userId'] == self.active_camera:
@@ -78,11 +79,13 @@ class CameraManager(object):
                 for userid, _ in sorted(self.active_speakers.items(), key=lambda x: x[1]):
                     for camera in self.cameras.values():
                         if camera.fields['userId'] == userid:
+                            log.debug("Switching active camera to %s" % userid)
                             self.active_camera = userid
                             return
 
 class Camera(WebRTC):
     def __init__(self, sessionmanager, fields, cameramanager):
+        log.debug("Initializing new camera connection")
         self.stype = 'video'
         self.cameramanager = cameramanager
         self.appsink = None
@@ -99,19 +102,22 @@ class Camera(WebRTC):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
 
+        log.debug("Connecting to bbb-webrtc-sfu")
         server = self.sessionmanager.bbb_server.replace('https', 'wss') + '/bbb-webrtc-sfu?sessionToken=' + self.sessionmanager.bbb_token
         self.conn = unasyncio(websockets.connect(server))
 
         pipeline = "webrtcbin name=recvonly bundle-policy=max-bundle stun-server=stun://%s" % self.sessionmanager.stun_server
+        pipeline += " ! rtprtxreceive payload-type-map=\"application/x-rtp-pt-map,98=(uint)99\""
+        pipeline += " ! rtpssrcdemux"
+        pipeline += " ! rtpjitterbuffer do-retransmission=true"
         pipeline += " ! rtpvp8depay"
         pipeline += " ! vp8dec"
-        pipeline += " ! queue"
         pipeline += " ! videorate"
         pipeline += " ! videoconvert"
-        pipeline += " ! queue"
         pipeline += " ! video/x-raw,format=RGBA,framerate=25/1,pixel-aspect-ratio=1/1"
         pipeline += " ! appsink name=output emit-signals=true drop=false sync=true"
 
+        log.debug("Starting camera webrtc pipeline")
         self.pipe = Gst.parse_launch(pipeline)
         self.webrtc = self.pipe.get_by_name('recvonly')
         self.appsink = self.pipe.get_by_name('output')
@@ -166,6 +172,8 @@ class Camera(WebRTC):
             sdpoffer += "a=mid:video0\r\n"
 
         msg['sdpOffer'] = sdpoffer.strip()
+
+        log.debug("Sending camera SDP offer: %r" % msg['sdpOffer'])
 
         self.send(msg)
 

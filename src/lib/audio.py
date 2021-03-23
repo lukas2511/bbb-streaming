@@ -22,6 +22,7 @@ Gst.init(None)
 
 class Audio(WebRTC):
     def __init__(self, sessionmanager, streammixer):
+        log.debug("Initializing audio connection")
         self.stype = 'audio'
         self.sessionmanager = sessionmanager
         self.streammixer = streammixer
@@ -34,6 +35,7 @@ class Audio(WebRTC):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
 
+        log.debug("Connecting to bbb-webrtc-sfu")
         server = self.sessionmanager.bbb_server.replace('https', 'wss') + '/bbb-webrtc-sfu?sessionToken=' + self.sessionmanager.bbb_token
         self.conn = unasyncio(websockets.connect(server))
 
@@ -44,6 +46,7 @@ class Audio(WebRTC):
         pipeline += " ! audioresample"
         pipeline += " ! appsink name=output emit-signals=true drop=false sync=true caps=audio/x-raw,rate=48000,channels=2,format=U16LE,layout=interleaved"
 
+        log.debug("Starting audio webrtc pipeline")
         self.pipe = Gst.parse_launch(pipeline)
         self.webrtc = self.pipe.get_by_name('recvonly')
 
@@ -98,6 +101,8 @@ class Audio(WebRTC):
             sdpoffer += "a=mid:audio0\r\n"
 
         msg['sdpOffer'] = sdpoffer.strip()
+
+        log.debug("Sending audio SDP offer: %r" % msg['sdpOffer'])
 
         self.send(msg)
 
