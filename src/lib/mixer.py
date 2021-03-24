@@ -23,9 +23,8 @@ class Mixer(object):
         self.running = True
 
         pipeline = "compositor background=black sync=true name=comp"
-        pipeline += " ! video/x-raw,width=1920,height=1080"
+        pipeline += " ! video/x-raw,width=1920,height=1080,framerate=25/1,format=RGBA"
         pipeline += " ! videoconvert"
-        pipeline += " ! videorate"
         pipeline += " ! queue"
         pipeline += " ! x264enc pass=4 quantizer=22 speed-preset=4 key-int-max=50"
         pipeline += " ! video/x-h264, profile=baseline"
@@ -51,7 +50,7 @@ class Mixer(object):
         pipeline += " ! queue"
         pipeline += " ! mux."
 
-        pipeline += " flvmux name=mux"
+        pipeline += " flvmux name=mux streamable=true"
         pipeline += " ! queue"
         pipeline += " ! rtmpsink sync=true location=%s" % rtmpurl
 
@@ -206,7 +205,7 @@ class Mixer(object):
             buf = sample.get_buffer()
             buf.pts = 18446744073709551615
             buf.dts = 18446744073709551615
-            buf.duration = 40000000
+            buf.duration = 18446744073709551615
             self.cambuffer = (buf, (width, height))
         elif stype == "presentation":
             caps = sample.get_caps().get_structure(0)
@@ -214,7 +213,7 @@ class Mixer(object):
             buf = sample.get_buffer()
             buf.pts = 18446744073709551615
             buf.dts = 18446744073709551615
-            buf.duration = 100000000
+            buf.duration = 18446744073709551615
             self.presbuffer = (buf, (width, height))
 
 

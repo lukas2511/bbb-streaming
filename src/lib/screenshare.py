@@ -75,15 +75,14 @@ class Screenshare(WebRTC):
         self.conn = unasyncio(websockets.connect(server))
 
         pipeline = "webrtcbin name=recvonly bundle-policy=max-bundle stun-server=stun://%s" % self.sessionmanager.stun_server
-        pipeline += " ! rtprtxreceive payload-type-map=\"application/x-rtp-pt-map,98=(uint)99\""
-        pipeline += " ! rtpssrcdemux"
-        pipeline += " ! rtpjitterbuffer do-retransmission=true"
         pipeline += " ! rtpvp8depay"
+        pipeline += " ! queue"
         pipeline += " ! vp8dec"
         pipeline += " ! videoscale"
         pipeline += " ! videoconvert"
         pipeline += " ! videorate"
         pipeline += " ! video/x-raw,width=1920,height=1080,format=RGBA,framerate=10/1,pixel-aspect-ratio=1/1"
+        pipeline += " ! queue"
         pipeline += " ! appsink name=output emit-signals=true drop=false sync=true"
 
         self.pipe = Gst.parse_launch(pipeline)

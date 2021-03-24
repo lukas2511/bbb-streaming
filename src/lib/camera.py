@@ -107,14 +107,13 @@ class Camera(WebRTC):
         self.conn = unasyncio(websockets.connect(server))
 
         pipeline = "webrtcbin name=recvonly bundle-policy=max-bundle stun-server=stun://%s" % self.sessionmanager.stun_server
-        pipeline += " ! rtprtxreceive payload-type-map=\"application/x-rtp-pt-map,98=(uint)99\""
-        pipeline += " ! rtpssrcdemux"
-        pipeline += " ! rtpjitterbuffer do-retransmission=true"
         pipeline += " ! rtpvp8depay"
+        pipeline += " ! queue"
         pipeline += " ! vp8dec"
         pipeline += " ! videorate"
         pipeline += " ! videoconvert"
         pipeline += " ! video/x-raw,format=RGBA,framerate=25/1,pixel-aspect-ratio=1/1"
+        pipeline += " ! queue"
         pipeline += " ! appsink name=output emit-signals=true drop=false sync=true"
 
         log.debug("Starting camera webrtc pipeline")

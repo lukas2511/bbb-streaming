@@ -41,9 +41,11 @@ class Audio(WebRTC):
 
         pipeline = "webrtcbin name=recvonly bundle-policy=max-bundle stun-server=stun://%s" % self.sessionmanager.stun_server
         pipeline += " ! rtpopusdepay"
+        pipeline += " ! queue"
         pipeline += " ! opusdec"
         pipeline += " ! audioconvert"
         pipeline += " ! audioresample"
+        pipeline += " ! queue"
         pipeline += " ! appsink name=output emit-signals=true drop=false sync=true caps=audio/x-raw,rate=44100,channels=2,format=S16LE,layout=interleaved,channel-mask=(bitmask)0x0000000000000003"
 
         log.debug("Starting audio webrtc pipeline")
@@ -54,7 +56,7 @@ class Audio(WebRTC):
         self.appsink.connect("new-sample", self.new_sample, self.appsink)
 
         direction = GstWebRTC.WebRTCRTPTransceiverDirection.RECVONLY
-        caps = Gst.caps_from_string("application/x-rtp,media=audio,encoding-name=opus,payload=111,fec-type=ulp-red,do-nack=true")
+        caps = Gst.caps_from_string("application/x-rtp,media=audio,encoding-name=opus,payload=111,fec-type=ulp-red,do-nack=true,clock-rate=48000")
         self.webrtc.emit('add-transceiver', direction, caps)
 
         self.webrtc.connect('on-negotiation-needed', self.on_negotiation_needed)
@@ -93,11 +95,14 @@ class Audio(WebRTC):
         sdpoffer = ""
         for line in offer.sdp.as_text().splitlines():
             if line.startswith("a=rtpmap:111 opus/"):
-                line = "a=rtpmap:111 opus/48000/2"
+                if '48000/2' not in line:
+                    log.debug("Fixing sdp offer, broken opus codec line: %s" % line)
+                    line = "a=rtpmap:111 opus/48000/2"
             sdpoffer += line
             sdpoffer += "\r\n"
 
         if 'a=mid:audio0' not in sdpoffer:
+            log.debug("Fixing sdp offer, appending a=mid:audio0")
             sdpoffer += "a=mid:audio0\r\n"
 
         msg['sdpOffer'] = sdpoffer.strip()

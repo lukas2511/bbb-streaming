@@ -51,6 +51,7 @@ class Presentation(object):
 
         pipeline = "appsrc name=input emit-signals=false format=time do-timestamp=true is-live=true block=true caps=video/x-raw,width=1920,height=1080,format=BGRA,framerate=10/1,pixel-aspect-ratio=1/1,interlace-mode=progressive"
         pipeline += " ! videoconvert"
+        pipeline += " ! queue"
         pipeline += " ! appsink name=output emit-signals=true drop=false sync=true caps=video/x-raw,format=RGBA,framerate=10/1,pixel-aspect-ratio=1/1"
 
         self.pipe = Gst.parse_launch(pipeline)
